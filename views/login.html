@@ -1,0 +1,178 @@
+<html lang="en">
+
+<head>
+
+	<meta charset="utf-8">
+
+    	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+	<title>Login Chargebee</title>
+
+  	<style type="text/css">
+
+
+
+
+
+body{
+
+width: 50%;
+
+margin-left: auto;
+
+margin-right: auto;
+
+padding: 100px;
+
+}
+
+
+
+
+
+.center{
+
+text-align:center;
+
+{
+
+
+
+
+
+.block{
+
+display:block;
+
+overflow: hidden;
+
+margin-bottom: 10px;
+
+}
+
+
+
+
+
+.top{
+
+margin-top:10px;
+
+}
+
+
+
+.cb-header{
+
+font-size: 18px;
+
+display: none;
+
+}
+
+
+
+form .cb-login{
+
+font-size: 14px;
+
+margin-top: 20px;
+
+background: rgb(242, 244, 255);
+
+padding: 20px;
+
+border: 1px solid rgb(237, 243, 240);
+
+}
+
+
+
+
+
+form .cb-button{
+
+background: #ff7846;
+
+border: 0;
+
+width: 150px;
+
+}
+
+
+
+
+
+</style>
+
+</head>
+
+
+
+<body class="body">
+
+	<div class="center">
+
+		<span class="block">
+
+			<img src="https://www.chargebee.com/docs/assets/v1.3/images/icon.png" style="margin-bottom: 10px;width: 50px;">
+
+		</span>
+
+	</div>
+
+	<div class="center">
+
+		<span class="cb-header">Connect your Chargebee with Intercom</span>
+
+	</div>
+
+ 
+
+	<form class="cb-login" method="get">
+
+		<label for="basic-url">Site Name</label>
+
+		<div class="input-group mb-3">
+
+			<div class="input-group-prepend">
+
+				    <span class="input-group-text" id="basic-addon3">https://</span>
+
+			</div>
+
+			<input type="text" name="sitename" class="form-control" id="idSiteName" aria-describedby="basic-addon3" placeholder="Site name">
+
+			<div class="input-group-append">
+
+   				<span class="input-group-text">.chargebee.com</span>
+
+			</div>
+
+		</div>
+
+  <div class="form-group">
+
+	<label for="exampleInputPassword1">API Key </label>
+
+	<input type="password" name="apikey" class="form-control" id="exampleInputPassword1" placeholder="API Key">
+
+</div>
+
+  <input type="hidden" name="code" value="{{code}}">
+
+  <input type="hidden" name="state" value="{{state}}">
+
+  <button type="submit" class="btn btn-primary cb-button">Submit</button>
+
+	</form>
+
+</body>
+
+</html>
+  
+      
+      
