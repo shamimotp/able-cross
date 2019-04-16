@@ -142,7 +142,7 @@ app.get("/auth", function (req, res) {
 app.post("/init", function (req, res) {
     //console.log("Received init: " + JSON.stringify(req.body));    
     if (isSigned(req)) {
-        return CustomerUtil.process(db, req.body, res);
+        return CustomerUtil.getCustomer(db, req.body, res);
         //return util.getInitialCanvas(db, req.body, res);
     }
 });
@@ -153,8 +153,14 @@ app.post("/submit", function (req, res) {
         if (action === undefined) {
             return res.json(errorCard);
         }
-        if (action.startsWith('c-list-')) {
+        if(action === 'REFRESH'){
+            return CustomerUtil.refresh(db, req.body, res);
+           }else if (action === 'SEARCH') {
+            return CustomerUtil.search(db, req.body, res);
+        }
+       else  if (action.startsWith('c-list-')) {
             let customerId = action.substring(7);
+            //console.log("Received submit: " + JSON.stringify(req.body));
             return CustomerUtil.getCustomer(db, req.body, res, customerId);
 
         } else if (action === 'MORE-SUBSCRIPTION') {

@@ -5,6 +5,7 @@ dependencies:
   moment: 2.24.0
   request: 2.88.0
   sqlite3: 4.0.6
+  validator: 10.11.0
 packages:
   /abbrev/1.1.1:
     dev: false
@@ -1087,6 +1088,12 @@ packages:
     hasBin: true
     resolution:
       integrity: sha512-yXJmeNaw3DnnKAOKJE51sL/ZaYfWJRl1pK9dr19YFCu0ObS231AB1/LbqTKRAQ5kw8A90rA6fr4riOUpTZvQZA==
+  /validator/10.11.0:
+    dev: false
+    engines:
+      node: '>= 0.10'
+    resolution:
+      integrity: sha512-X/p3UZerAIsbBfN/IwahhYaBbY68EN/UQBWHtsbXGT5bfrH/p4NQzUCG1kF/rtKaNpnJ7jAu6NGTdSNtyNIXMw==
   /vary/1.1.2:
     dev: false
     engines:
@@ -1127,3 +1134,4 @@ specifiers:
   moment: ^2.24.0
   request: ^2.88.0
   sqlite3: ^4.0.6
+  validator: ^10.10.0
