@@ -53,7 +53,13 @@ const getCard = (data) => {
             },
             stored_data : {         
             }
-        }
+        },
+      
+      card_creation_options: {
+                  email: data.email,
+                  url : data.url
+     
+              }
     };
     if(data.customerId !== undefined ) {
         card.canvas.stored_data.customerId = data.customerId;        
@@ -167,7 +173,8 @@ module.exports = {
                     var addons = [];
                     for(var i=0;i<intercom.current_canvas.stored_data.addons.length;i++){
                         addons.push({
-                            id : intercom.current_canvas.stored_data.addons[i].id,                            
+                            id : intercom.current_canvas.stored_data.addons[i].id,   
+                            quantity : intercom.current_canvas.stored_data.addons[i].quantity, 
                         });
                     }
                     inputData.addons = addons;
@@ -214,5 +221,76 @@ module.exports = {
             }
         });
 
-    }
+    },
+   getmessage:(db, intercom, res) => {
+      db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
+            if (row) {
+               var data  = intercom.card_creation_options;
+               if(data.email === undefined || data.url === undefined) {
+                 let card = {
+                  canvas: {
+                      content: {
+                          components: [
+                              {
+                                  type: "text",
+                                  text: "Email and/or url not avaialable",
+                                  align: "left",
+                                  style: "error"
+                              },
+                            {
+                                  type: "spacer",
+                                  size: "m"
+                              },
+                                     
+
+                          ]
+                      }
+                  }
+            };
+              return res.json(card);
+                 
+               }else {
+                  let card = {
+                  canvas: {
+                      content: {
+                          components: [
+                              {
+                                  type: "text",
+                                  text: "Checkout link created successfully and an email is sent to " + data.email,
+                                  align: "left",
+                                  style: "muted"
+                              },
+                            {
+                                  type: "spacer",
+                                  size: "m"
+                              },
+                              {
+                                  type: "text",
+                                  text: "CHECKOUT URL",
+                                  align: "left",
+                                  style: "header"
+                              },
+                              {
+                                  type: "text",
+                                  text: "["+data.url+"]("+data.url+")",
+                                  align: "left"
+                              },{
+                                  type: "spacer",
+                                  size: "m"
+                              },                  
+
+                          ]
+                      }
+                  }
+            };
+              return res.json(card);
+               }
+              
+                
+            }else {
+              return common.getNoAuthCard(res);
+            }
+      }
+      );
+   }
 }

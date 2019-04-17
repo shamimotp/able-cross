@@ -7,7 +7,7 @@ const getCard = (data) => {
                 components: [
                     {
                         type: "text",
-                        text: " UPDATE PAYMENT METHOD",
+                        text: "  COLLECT NOW",
                         align: "left",
                         style: "header"
                     },
@@ -83,7 +83,7 @@ const getErrorCard = (data) => {
                 components: [
                     {
                         type: "text",
-                        text: " UPDATE PAYMENT METHOD",
+                        text: "  COLLECT NOW",
                         align: "left",
                         style: "header"
                     },
@@ -111,7 +111,9 @@ const getErrorCard = (data) => {
                 ]
             },
             stored_data : {     
-                
+                nrAddons :data.nrAddons,
+                addons :data.addons,
+                oldInputs: data.oldInputs
             }
         }
     };
@@ -120,7 +122,7 @@ const getErrorCard = (data) => {
     }
     card.canvas.content.components.push({
         type: "button",
-        id: "GET-SUBSCRIPTION",
+        id: "ADD-RECURRING-ADDON-CANCEL",
         label: "<- Go Back",
         action: {
             type: "submit"
@@ -131,13 +133,12 @@ const getErrorCard = (data) => {
     
 }
 module.exports = {
-    update: (db, intercom, res) => {
+    process: (db, intercom, res) => {
 
       let customerId = intercom.current_canvas.stored_data.customerId;
-      db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
+        db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
             if (row) {
-
-                let email = intercom.customer.email;
+              let email = intercom.customer.email;
                 //email = 'shamim@keyvalue.systems'
                 if (email === undefined || email === "") {
                     return common.getNoEmailCard(res);
@@ -168,7 +169,7 @@ module.exports = {
                    
                 }
                 
-                chargebee.hosted_page.manage_payment_sources(inputData).request(function(hostedPageError,hostedPageResult) {
+                chargebee.hosted_page.collect_now(inputData).request(function(hostedPageError,hostedPageResult) {
                     if(hostedPageError){
                         data.error = hostedPageError.message;                        
                         return res.json(getErrorCard(data));
@@ -181,6 +182,9 @@ module.exports = {
                   });                 
                 
               });
+
+
+                
                
             } else {
                 return common.getNoAuthCard(res);
