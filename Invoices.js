@@ -102,7 +102,7 @@ const getCard = (data) => {
         card.canvas.content.components.push({
             type: "image",
             url: data.invoice[i].imageURL,
-            align: "right",
+            align: "left",
             width: 65,
             height: 19
         });

@@ -1,7 +1,5 @@
 module.exports = {
     getNoAuthCard: (res) => {
-
-
         let card = {
             canvas: {
                 content: {
@@ -22,12 +20,24 @@ module.exports = {
                 content: {
                     components: [{
                             type: "spacer",
-                            size: "xl"
+                            size: "m"
                         }, {
                             type: "text",
-                            text: "Customer dosen't  have email id.",
-                            style: "error",
+                            text: "Customer with this email id dosen't  exist in Chargebee.",
                             align: "center"
+                        },
+                        {
+                            type: "input",
+                            id: "SEARCH",
+                            placeholder: "SEARCH BY EMAIL,COMPANY NAME",
+                            save_state: "unsaved",
+                            action: {
+                                type: "submit"
+                            }
+                        },
+                        {
+                            type: "spacer",
+                            size: "xl"
                         },
                         {
                             type: "spacer",
@@ -35,6 +45,15 @@ module.exports = {
                         },
                         {
                             type: "divider"
+                        },
+                        {
+                            type: "button",
+                            id: "REFRESH",
+                            label: "REFRESH",
+
+                            action: {
+                                type: "submit"
+                            }
                         }
                     ]
                 }
@@ -62,12 +81,25 @@ module.exports = {
                 content: {
                     components: [{
                             type: "spacer",
-                            size: "xl"
+                            size: "m"
                         }, {
                             type: "text",
-                            text: "Customer with this email id '" + email + "' dosen't exist in Chargebee",
+                            text: "Customer with this email id dosen't  exist in Chargebee.",
                             style: "header",
                             align: "center"
+                        },
+                        {
+                            type: "input",
+                            id: "SEARCH",
+                            placeholder: "SEARCH BY EMAIL,COMPANY NAME",
+                            save_state: "unsaved",
+                            action: {
+                                type: "submit"
+                            }
+                        },
+                        {
+                            type: "spacer",
+                            size: "xl"
                         },
                         {
                             type: "spacer",
@@ -83,6 +115,15 @@ module.exports = {
                             action: {
                                 type: "submit"
                             }
+                        },
+                        {
+                            type: "button",
+                            id: "REFRESH",
+                            label: "REFRESH",
+
+                            action: {
+                                type: "submit"
+                            }
                         }
                     ]
                 },
@@ -92,6 +133,14 @@ module.exports = {
             }
         };
         return res.json(card);
+    },
+    getCustomerId: (intercom) => {
+        let customerId;
+        if (intercom.current_canvas.stored_data !== undefined) {
+            customerId = intercom.current_canvas.stored_data.customerId;
+        }
+        return customerId;
+
     }
 
 }

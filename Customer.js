@@ -8,7 +8,7 @@ const getCustomer = (customer,res) => {
                           type: "list",
                           items: [{
                               type: "item",
-                              id: + customer.id,
+                              id:  customer.id,
                               title: customer.first_name + " " + customer.last_name,
                               subtitle: customer.email,
                               tertiary_text: customer.company
@@ -34,6 +34,7 @@ const getCustomer = (customer,res) => {
             } //optional
           }
       };
+  
   
   return res.json(ocard); 
 }
@@ -190,12 +191,12 @@ const getCard =( data)=>{
             }
         );
     }
-    if(data.subscriptionCount> 0) {
+    if( (data.subscriptionCount - 1) > 0) {
         card.canvas.content.components.push(
             {
                 type: "button",
                 id: "MORE-SUBSCRIPTION",
-                label: "+"+data.subscriptionCount+ " more subscriptions",
+                label: "+"+ (data.subscriptionCount-1 )+ " more subscriptions",
                 style:"link",
     
                 action: {
@@ -253,7 +254,29 @@ const getCard =( data)=>{
             }
         );
     }
-        
+    card.canvas.content.components.push(
+          {
+              type: "button",
+              id: "COLLECT-NOW",
+              label: "COLLECT NOW",
+
+              action: {
+                  type: "submit"
+              }
+          }
+      );
+      card.canvas.content.components.push(
+              {
+                  type: "button",
+                  id: "REFRESH",
+                  label: "REFRESH",
+
+                  action: {
+                      type: "submit"
+                  }
+              }
+          );
+
 
 
    
@@ -362,22 +385,35 @@ const getCustomerWithSubScription = (chargebee, res, list,customer) => {
   
 }
 module.exports = {
-    process: (chargebee, res,customerId) => {
-      chargebee.customer.retrieve(customerId).request(function(error,result) {
-      var customer = result.customer;
-      chargebee.subscription.list({
-        limit : 100,
-        "customer_id[is]" : customerId
-      }).request(function(error,subResult) {
-            if(subResult.list.length ===0){
-                return getCustomer(customer,res);
-            }else {
-              
-              return getCustomerWithSubScription(chargebee,res,subResult.list,customer);
-            }
-      });
-    });
-    },
+  
+   process: (chargebee, res, customerId) => {
+        chargebee.customer.retrieve(customerId).request(function (error, result) {
+           
+            var customer = result.customer;
+            chargebee.subscription.list({
+                limit: 100,
+                "customer_id[is]": customerId
+            }).request(function (error, subResult) {
+                if (subResult.list.length === 0) {
+                    return getCustomer(customer, res);
+                } else {
 
+                    return getCustomerWithSubScription(chargebee, res, subResult.list, customer);
+                }
+            });
+        });
+    },
+  get: (chargebee, res, customer) => {
+        chargebee.subscription.list({limit: 100,"customer_id[is]": customer.id}).request(
+          function (error, subResult) {
+            if (subResult.list.length === 0) {
+                return getCustomer(customer, res);
+            } else {
+
+                return getCustomerWithSubScription(chargebee, res, subResult.list, customer);
+            }
+        });
+
+    },
   
 }
