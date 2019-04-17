@@ -19,6 +19,7 @@ const nrChangeAddon = require('./nrChangeAddon');
 const common = require('./common');
 const hostedPage = require('./hostedPage');
 const Payment = require('./Payment');
+const CollectNow = require('./CollectNow');
 
 
 app.use(bodyParser.json());
@@ -147,7 +148,7 @@ app.post("/init", function (req, res) {
     }
 });
 app.post("/submit", function (req, res) {
-    //console.log("Received submit: " + JSON.stringify(req.body));
+    //console.log("Received submit: " + JSON.stringify(req.body)); 
     if (isSigned(req)) {
         let action = req.body['component_id'];
         if (action === undefined) {
@@ -157,6 +158,8 @@ app.post("/submit", function (req, res) {
             return CustomerUtil.refresh(db, req.body, res);
            }else if (action === 'SEARCH') {
             return CustomerUtil.search(db, req.body, res);
+        }else if (action === 'COLLECT-NOW') {
+            return CollectNow.process(db, req.body, res);
         }
        else  if (action.startsWith('c-list-')) {
             let customerId = action.substring(7);
@@ -227,6 +230,54 @@ app.get('/all', function (req, res) {
 
 
 });
+
+app.post("/msg/init", function (req, res) {
+    if (isSigned(req)) {
+        return hostedPage.getmessage(db,req.body, res);
+        //return util.getInitialCanvas(db, req.body, res);
+    }
+});
+
+app.post("/msg/submit", function (req, res) {
+    //console.log("Received init: " + JSON.stringify(req.body));    
+    if (isSigned(req)) {
+        let card = {
+            canvas: {
+                content: {
+                    components: [{
+                        type: "text",
+                        text: " Bi from Chargebee ",
+
+                    }]
+                },
+                stored_data: {} //optional
+            }
+        };
+        return res.json(card);
+        //return util.getInitialCanvas(db, req.body, res);
+    }
+});
+
+app.post("/msg/config", function (req, res) {
+    console.log("Received config: " + JSON.stringify(req.body));    
+    if (isSigned(req)) {
+        let card = {
+            canvas: {
+                content: {
+                    components: [{
+                        type: "text",
+                        text: " config from Chargebee ",
+
+                    }]
+                },
+                stored_data: {} //optional
+            }
+        };
+        return res.json(card);
+        //return util.getInitialCanvas(db, req.body, res);
+    }
+});
+
 // listen for requests :)
 const listener = app.listen(process.env.PORT, function () {
     console.log('Your app is listening on port ' + listener.address().port);

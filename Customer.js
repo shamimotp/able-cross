@@ -116,7 +116,8 @@ const getCard =( data)=>{
                             type: "submit"
                         },
                     },
-                    {
+                   
+                  {
                         type: "text",
                         text: "SUBSCRIPTIONS",
                         align: "left",
@@ -158,6 +159,7 @@ const getCard =( data)=>{
                             }
                         ]
                     },
+                  
                 ]
             },
           stored_data: {
