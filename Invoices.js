@@ -92,6 +92,26 @@ const getCard = (data) => {
             } 
         }
     };
+  if(data.invoice.length < 1 ) {
+    card.canvas.content.components.push({
+                        type: "spacer",
+                        size: "m"
+                    });
+    card.canvas.content.components.push({
+                        type: "text",
+                        text: "Invoices aren’t created for this customer yet",
+                        align: "center",
+                        style: "header"
+                    });
+    card.canvas.content.components.push({
+                        type: "spacer",
+                        size: "xl"
+                    });
+     card.canvas.content.components.push({
+                        type: "divider"
+                    });
+      
+  }
     for (var i = 0; i < data.invoice.length; i++) {
         card.canvas.content.components.push({
             type: "text",

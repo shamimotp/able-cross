@@ -71,11 +71,7 @@ const getCard = (data) => {
                 }
             ]
         });
-        card.canvas.content.components.push(
-                {
-  type: "divider"
-}
-            );
+        
         if(data.subscriptions[i].hasAddon) {
             card.canvas.content.components.push(
                 {
@@ -102,6 +98,11 @@ const getCard = (data) => {
                 }
             );
         }
+      card.canvas.content.components.push(
+                {
+  type: "divider"
+}
+            );
     }
     card.canvas.content.components.push(
         {

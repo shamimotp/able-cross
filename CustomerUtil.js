@@ -18,7 +18,7 @@ const getByMail = (chargebee, intercom, res) => {
             }
             if (result.list.length == 1) {
                 var entry = result.list[0]
-                return Customer.get(chargebee, res, entry.customer);
+                return Customer.get(chargebee, res, entry.customer,intercom);
             }
             if (result.list.length > 1) {
                 return CustomerList.process(result.list, email, res);
@@ -68,7 +68,7 @@ const process = (db, intercom, res, cId) => {
                     if (error) {
                         return getByMail(chargebee, intercom, res);
                     } else {
-                        return Customer.get(chargebee, res, result.customer);
+                        return Customer.get(chargebee, res, result.customer,intercom);
                     }
                 });
             } else {
@@ -90,7 +90,16 @@ module.exports = {
     },
   
     search(db, intercom, res) {     
-      let searchText = intercom.input_values.SEARCH;
+      let searchText = '';
+      if(intercom.input_values && intercom.input_values.SEARCH) {
+        searchText = intercom.input_values.SEARCH;
+      }
+      
+      
+ 
+      if(intercom.current_canvas.stored_data !== undefined && intercom.current_canvas.stored_data.cSavedSearch2 !== undefined){
+        searchText = intercom.current_canvas.stored_data.cSavedSearch2;
+      }
       if(searchText !== undefined ) {
         searchText = searchText.trim();
         if(searchText !== '' ) {

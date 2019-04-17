@@ -175,7 +175,8 @@ app.post("/submit", function (req, res) {
         } else if (action == 'CREATE-NEW-SUBSCRIPTION') {
             return CreateSubscription.process(db, req.body, res);
         } else if (action == 'INIT-PAGE') {
-            return CustomerUtil.process(db, req.body, res);
+            return CustomerUtil.getCustomer(db, req.body, res);
+          
         } else if (action == 'ADD_RECURRING_ADDDON') {
             return addonAdd.process(db, req.body, res);
         } else if (action == 'ADD-RECURRING-ADDON-CREATE') {

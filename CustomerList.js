@@ -1,3 +1,4 @@
+const common = require('./common');
 module.exports = {
     process: (clist, email, res) => {
         let mCards = {
@@ -18,7 +19,10 @@ module.exports = {
                             size: "xl"
                         }
                     ]
-                }
+                },
+              stored_data: {
+                fromList: 'email'
+                } 
             }
         };
         let list = {
@@ -28,23 +32,14 @@ module.exports = {
         for (var i = 0; i < clist.length; i++) {
             var customer = clist[i].customer;
 
-            var eItems = {
-                type: "item",
-                id: "c-list-" + customer.id,
-                title: customer.first_name + " " + customer.last_name,
-                subtitle: customer.email,
-                tertiary_text: customer.company,
-                action: {
-                    type: "submit"
-                }
-            };
-            list.items.push(eItems);
+            var eItems = common.getCustomerList(customer, "c-list-");
+            list.items.push(eItems.items[0]);
         }
         mCards.canvas.content.components.push(list);
         return res.json(mCards);
 
     },
-  searchResult: (clist, res,searchText) => {
+    searchResult: (clist, res, searchText) => {
         let mCards = {
             canvas: {
                 content: {
@@ -62,7 +57,7 @@ module.exports = {
                             id: "SEARCH",
                             placeholder: "SEARCH BY EMAIL,COMPANY NAME",
                             save_state: "unsaved",
-                            value:searchText,
+                            value: searchText,
                             action: {
                                 type: "submit"
                             }
@@ -72,7 +67,11 @@ module.exports = {
                             size: "m"
                         }
                     ]
-                }
+                },
+              stored_data: {
+                fromList: 'search',
+                cSavedSearch:searchText
+                } 
             }
         };
         let list = {
@@ -82,25 +81,15 @@ module.exports = {
         for (var i = 0; i < clist.length; i++) {
             var customer = clist[i].customer;
 
-            var eItems = {
-                type: "item",
-                id: "c-list-" + customer.id,
-                title: customer.first_name + " " + customer.last_name,
-                subtitle: customer.email,
-                tertiary_text: customer.company,
-                action: {
-                    type: "submit"
-                }
-            };
-            list.items.push(eItems);
+            var eItems = common.getCustomerList(customer, "c-list-");
+            list.items.push(eItems.items[0]);
         }
         mCards.canvas.content.components.push(list);
-    mCards.canvas.content.components.push(
-                {
-  type: "spacer",
-                  size: "m"
-});
-    
+        mCards.canvas.content.components.push({
+            type: "spacer",
+            size: "m"
+        });
+
         return res.json(mCards);
 
     }

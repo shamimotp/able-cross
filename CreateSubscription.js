@@ -1,5 +1,6 @@
 const chargebee = require("chargebee");
 const common = require('./common');
+const validator = require('validator');
 
 
 const getCard = (data) => {
@@ -286,6 +287,10 @@ module.exports = {
                     chargebee.customer.retrieve(customerId).request(function (customerError, customerResult) {
                         var customer = customerResult.customer;
                         data.customerId = customer.id;
+                        if(customer.email !== undefined  && validator.isEmail(customer.email)) {
+                          data.email = customer.email;
+                          
+                        }
                         chargebee.plan.list({
                             "status[is]": "active"
                         }).request(function (planError, planResult) {
