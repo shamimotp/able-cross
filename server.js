@@ -169,7 +169,14 @@ app.post("/submit", function (req, res) {
         } else if (action === 'MORE-SUBSCRIPTION') {
             return Subscriptions.process(db, req.body, res);
         } else if (action == 'GET-SUBSCRIPTION') {
+          let customerId = common.getCustomerId(req.body);
+          if(customerId !== undefined) {
+            return CustomerUtil.getCustomer(db, req.body, res,customerId);
+          }else {
             return CustomerUtil.getCustomer(db, req.body, res);
+          }
+          
+
         } else if (action == 'GET-INVOICE') {
             return Invoices.process(db, req.body, res);
         } else if (action == 'CREATE-NEW-SUBSCRIPTION') {
