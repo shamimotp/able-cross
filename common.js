@@ -61,18 +61,27 @@ module.exports = {
         };
         return res.json(card);
     },
-    getErrorCard: (res) => {
+    getErrorCard: (res,msg) => {
         let card = {
             canvas: {
                 content: {
                     components: [{
                         type: "text",
-                        text: "Chargebee API Error",
+                        text: "Error",
                         style: "error"
                     }]
                 }
             }
         };
+        if(msg!== undefined && msg.trim() !== '') {
+            card.canvas.content.components.push(
+                {
+                    type: "text",
+                    text: msg,
+                    style: "error"
+                }
+            );
+        }
         return res.json(card);
     },
     getNoCustomerCard: (res, email) => {

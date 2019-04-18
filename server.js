@@ -46,15 +46,11 @@ db.serialize(function () {
             db.run('INSERT INTO Dreams (id,sitename,apikey,token) VALUES ("1","sitename","apikey","token")');
         });
     } else {
-        console.log('Database "Dreams" ready to go!');
-        /*db.each('SELECT * from Dreams', function (err, row) {return Customer.process(chargebee, res, customerId);
-            if (row) {
-                console.log('record:', row);
-            }
-        });*/
+        console.log('Database "Dreams" ready to go!');       
     }
 });
-// http://expressjs.com/en/starter/basic-routing.html
+
+
 app.get('/', function (request, response) {
     response.sendFile(__dirname + '/views/index.html');
 });
@@ -143,107 +139,63 @@ app.get("/auth", function (req, res) {
 app.post("/init", function (req, res) {
     //console.log("Received init: " + JSON.stringify(req.body));    
     if (isSigned(req)) {
-        return CustomerUtil.getCustomer(db, req.body, res);
-        //return util.getInitialCanvas(db, req.body, res);
+        db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
+            if (row) {
+                let cbUser = row;
+                chargebee.configure({
+                    site: cbUser.sitename,
+                    api_key: cbUser.apikey
+                });
+                return CustomerUtil.getCustomer(chargebee, req.body, res);
+            }else {
+                return common.getNoAuthCard(res);
+            }
+        });
+    }else {
+        return res.send("{}");
     }
 });
 app.post("/submit", function (req, res) {
     //console.log("Received submit: " + JSON.stringify(req.body)); 
     if (isSigned(req)) {
-        let action = req.body['component_id'];
-        if (action === undefined) {
-            return res.json(errorCard);
-        }
-        if(action === 'REFRESH'){
-            return CustomerUtil.refresh(db, req.body, res);
-           }else if (action === 'SEARCH') {
-            return CustomerUtil.search(db, req.body, res);
-        }else if (action === 'COLLECT-NOW') {
-            return CollectNow.process(db, req.body, res);
-        }
-       else  if (action.startsWith('c-list-')) {
-            let customerId = action.substring(7);
-            //console.log("Received submit: " + JSON.stringify(req.body));
-            return CustomerUtil.getCustomer(db, req.body, res, customerId);
-
-        } else if (action === 'MORE-SUBSCRIPTION') {
-            return Subscriptions.process(db, req.body, res);
-        } else if (action == 'GET-SUBSCRIPTION') {
-          let customerId = common.getCustomerId(req.body);
-          if(customerId !== undefined) {
-            return CustomerUtil.getCustomer(db, req.body, res,customerId);
-          }else {
-            return CustomerUtil.getCustomer(db, req.body, res);
-          }
-          
-
-        } else if (action == 'GET-INVOICE') {
-            return Invoices.process(db, req.body, res);
-        } else if (action == 'CREATE-NEW-SUBSCRIPTION') {
-            return CreateSubscription.process(db, req.body, res);
-        } else if (action == 'INIT-PAGE') {
-            return CustomerUtil.getCustomer(db, req.body, res);
-          
-        } else if (action == 'ADD_RECURRING_ADDDON') {
-            return addonAdd.process(db, req.body, res);
-        } else if (action == 'ADD-RECURRING-ADDON-CREATE') {
-            return addonAdd.newAddon(db, req.body, res);
-        } else if (action == 'ADD-RECURRING-ADDON-CANCEL') {
-            return addonAdd.goBack(db, req.body, res);
-        } else if (action.startsWith('REMOVE_ADDDON-')) {
-            let addonID = action.substring(14);
-            return changeAddon.process(db, req.body, res, addonID);
-        } else if (action.startsWith('CHANGE-RECURRING-ADDON-')) {
-            let addonID = action.substring(23);
-            return changeAddon.change(db, req.body, res, addonID);
-        } else if (action.startsWith('REMOVE-RECURRING-ADDON-')) {
-            let addonID = action.substring(23);
-            return changeAddon.remove(db, req.body, res, addonID);
-        } else if (action == 'ADD_NON_RECURRING_ADDDON') {
-            return nrAddonAdd.process(db, req.body, res);
-        } else if (action == 'ADD-NON-RECURRING-ADDON-CREATE') {
-            return nrAddonAdd.newAddon(db, req.body, res);
-        } else if (action.startsWith('REMOVE_NRADDDON-')) {
-            let addonID = action.substring(16);
-            return nrChangeAddon.process(db, req.body, res, addonID);
-        } else if (action.startsWith('CHANGE-NON-RECURRING-ADDON-')) {
-            let addonID = action.substring(27);
-            return nrChangeAddon.change(db, req.body, res, addonID);
-        } else if (action.startsWith('REMOVE-NON-RECURRING-ADDON-')) {
-            let addonID = action.substring(27);
-            return nrChangeAddon.remove(db, req.body, res, addonID);
-        }else if (action == 'SEND-HOSTED-PAGE'){
-            return hostedPage.process(db, req.body, res);
-        }else if (action == 'REQUEST-PAYMENT-METHOD') {
-            return Payment.update(db, req.body, res);
-        }else if (action == 'UPDATE-PAYMENT-METHOD') {
-          return Payment.update(db, req.body, res);
-        }
-        else {
-            return res.json(errorCard);
-        }
+        db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
+            if (row) {
+                let cbUser = row;
+                chargebee.configure({
+                    site: cbUser.sitename,
+                    api_key: cbUser.apikey
+                });
+                return processRequest(chargebee,req, res);
+            }else {
+                return common.getNoAuthCard(res);
+            }
+        });
+                
     } else {
         return res.send("{}");
     }
 
 });
 
-app.get('/all', function (req, res) {
-    db.get('SELECT * from Dreams where id = "3067695"', function (err, row) {
-        if (row) {
-            console.log('record:', row);
-        }
-    });
-    return res.send("{}");
-
-
-});
 
 app.post("/msg/init", function (req, res) {
     if (isSigned(req)) {
-        return hostedPage.getmessage(db,req.body, res);
-        //return util.getInitialCanvas(db, req.body, res);
-    }
+        db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
+            if (row) {
+                let cbUser = row;
+                chargebee.configure({
+                    site: cbUser.sitename,
+                    api_key: cbUser.apikey
+                });
+                return hostedPage.getmessage(req.body, res);        
+            }else {
+                return common.getNoAuthCard(res);
+            }
+        });
+                
+    } else {
+        return res.send("{}");
+    }    
 });
 
 app.post("/msg/submit", function (req, res) {
@@ -308,14 +260,82 @@ const getLogin = (code, state) => {
     return ft2;
 }
 
-const errorCard = {
-    canvas: {
-        content: {
-            components: [{
-                type: "text",
-                text: "Chargebee Submit Error",
-                style: "error"
-            }]
-        }
+
+
+
+const processRequest = (chargebee,req, res) => {
+
+    let action = req.body['component_id'];
+    if (action === undefined) {
+        return common.getErrorCard(res);
     }
-};
+    if(action === 'REFRESH'){
+        return CustomerUtil.refresh(chargebee, req.body, res);
+       }else if (action === 'SEARCH') {
+        return CustomerUtil.search(chargebee, req.body, res);
+    }else if (action === 'COLLECT-NOW') {
+        return CollectNow.process(chargebee, req.body, res);
+    }
+   else  if (action.startsWith('c-list-')) {
+        let customerId = action.substring(7);
+        //console.log("Received submit: " + JSON.stringify(req.body));
+        return CustomerUtil.getCustomer(chargebee, req.body, res, customerId);
+
+    } else if (action === 'MORE-SUBSCRIPTION') {
+        return Subscriptions.process(chargebee, req.body, res);
+    } else if (action == 'GET-SUBSCRIPTION') {
+      let customerId = common.getCustomerId(req.body);
+      if(customerId !== undefined) {
+        return CustomerUtil.getCustomer(chargebee, req.body, res,customerId);
+      }else {
+        return CustomerUtil.getCustomer(chargebee, req.body, res);
+      }
+      
+
+    } else if (action == 'GET-INVOICE') {
+        return Invoices.process(chargebee, req.body, res);
+    } else if (action == 'CREATE-NEW-SUBSCRIPTION') {
+        return CreateSubscription.process(chargebee, req.body, res);
+    } else if (action == 'INIT-PAGE') {
+        return CustomerUtil.getCustomer(chargebee, req.body, res);
+      
+    } else if (action == 'ADD_RECURRING_ADDDON') {
+        return addonAdd.process(chargebee, req.body, res);
+    } else if (action == 'ADD-RECURRING-ADDON-CREATE') {
+        return addonAdd.newAddon(chargebee, req.body, res);
+    } else if (action == 'ADD-RECURRING-ADDON-CANCEL') {
+        return addonAdd.goBack(chargebee, req.body, res);
+    } else if (action.startsWith('REMOVE_ADDDON-')) {
+        let addonID = action.substring(14);
+        return changeAddon.process(chargebee, req.body, res, addonID);
+    } else if (action.startsWith('CHANGE-RECURRING-ADDON-')) {
+        let addonID = action.substring(23);
+        return changeAddon.change(chargebee, req.body, res, addonID);
+    } else if (action.startsWith('REMOVE-RECURRING-ADDON-')) {
+        let addonID = action.substring(23);
+        return changeAddon.remove(chargebee, req.body, res, addonID);
+    } else if (action == 'ADD_NON_RECURRING_ADDDON') {
+        return nrAddonAdd.process(chargebee, req.body, res);
+    } else if (action == 'ADD-NON-RECURRING-ADDON-CREATE') {
+        return nrAddonAdd.newAddon(chargebee, req.body, res);
+    } else if (action.startsWith('REMOVE_NRADDDON-')) {
+        let addonID = action.substring(16);
+        return nrChangeAddon.process(chargebee, req.body, res, addonID);
+    } else if (action.startsWith('CHANGE-NON-RECURRING-ADDON-')) {
+        let addonID = action.substring(27);
+        return nrChangeAddon.change(chargebee, req.body, res, addonID);
+    } else if (action.startsWith('REMOVE-NON-RECURRING-ADDON-')) {
+        let addonID = action.substring(27);
+        return nrChangeAddon.remove(chargebee, req.body, res, addonID);
+    }else if (action == 'SEND-HOSTED-PAGE'){
+        return hostedPage.process(chargebee, req.body, res);
+    }else if (action == 'REQUEST-PAYMENT-METHOD') {
+        return Payment.update(chargebee, req.body, res);
+    }else if (action == 'UPDATE-PAYMENT-METHOD') {
+      return Payment.update(chargebee, req.body, res);
+    }
+    else {
+        common.getErrorCard(res,"Submit error");
+    }
+
+}
