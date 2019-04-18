@@ -169,13 +169,21 @@ app.post("/submit", function (req, res) {
         } else if (action === 'MORE-SUBSCRIPTION') {
             return Subscriptions.process(db, req.body, res);
         } else if (action == 'GET-SUBSCRIPTION') {
+          let customerId = common.getCustomerId(req.body);
+          if(customerId !== undefined) {
+            return CustomerUtil.getCustomer(db, req.body, res,customerId);
+          }else {
             return CustomerUtil.getCustomer(db, req.body, res);
+          }
+          
+
         } else if (action == 'GET-INVOICE') {
             return Invoices.process(db, req.body, res);
         } else if (action == 'CREATE-NEW-SUBSCRIPTION') {
             return CreateSubscription.process(db, req.body, res);
         } else if (action == 'INIT-PAGE') {
-            return CustomerUtil.process(db, req.body, res);
+            return CustomerUtil.getCustomer(db, req.body, res);
+          
         } else if (action == 'ADD_RECURRING_ADDDON') {
             return addonAdd.process(db, req.body, res);
         } else if (action == 'ADD-RECURRING-ADDON-CREATE') {

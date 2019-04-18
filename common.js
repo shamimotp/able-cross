@@ -141,6 +141,66 @@ module.exports = {
         }
         return customerId;
 
+    },
+    getCustomerList: (customer, preText) => {
+        let name = '';
+        if(customer.first_name !== undefined ) {
+            name = customer.first_name;
+        }
+        if(customer.last_name !== undefined ) {
+            name = name + ' ' + customer.last_name;
+        }
+        name = name.trim();
+        let email = '';
+        if(customer.email !== undefined ) {
+            email = customer.email;
+        }
+        email = email.trim();
+
+        let company = '';
+        if(customer.company !== undefined ) {
+            company = customer.company;
+        }
+        company = company.trim();
+
+        
+
+        if(name ==='') {
+            name = email;
+            email = company;
+            company ='';
+        }
+        if(name ==='') {
+            name = email;
+            email = '';
+        }
+        if(name ==='') {
+            name = customer.id;
+        }
+
+        let items =  {
+            type: "item",
+            id: customer.id,
+            title: name
+        };
+        if(preText !== undefined) {
+            items.id = preText + customer.id;
+            items.action = {
+                type: "submit"
+            }
+        }
+        if(email !=='') {
+            items.subtitle = email;
+        }
+        if(company !=='') {
+            items.tertiary_text = company;
+        }
+
+        let list = {
+            type: "list",
+            items: [items]
+        }
+        return list;
     }
 
 }
