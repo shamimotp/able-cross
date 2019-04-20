@@ -69,12 +69,12 @@ const getCard = (data) => {
 
     card.canvas.content.components.push(addonDrop);
     card.canvas.content.components.push({
-        type: "input",
-        id: "CUSTOMER_ADDON_QTY",
-        label: "QUANTITY",
-        save_state: "unsaved",        
+      type: "input",
+      id: "CUSTOMER_ADDON_QTY",
+      label: "QUANTITY",
+      save_state: "unsaved",
 
-       });
+    });
     card.canvas.content.components.push({
       type: "spacer",
       size: "m"
@@ -87,14 +87,14 @@ const getCard = (data) => {
         type: "submit"
       }
     });
-  }else {
+  } else {
     card.canvas.content.components.push({
-            type: "text",
-            text: "No Addons avaialable",
-            align: "left",  
-            style: "error"
-              
-          });
+      type: "text",
+      text: "No Addons avaialable",
+      align: "left",
+      style: "error"
+
+    });
   }
   card.canvas.content.components.push({
     type: "spacer",
@@ -115,130 +115,109 @@ const getCard = (data) => {
 }
 
 module.exports = {
-  process: (db, intercom, res) => {
+  process: (chargebee, intercom, res) => {
     let customerId = intercom.current_canvas.stored_data.customerId;
     var currentAddons = intercom.current_canvas.stored_data.addons;
-    db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
-      if (row) {
-        let email = intercom.customer.email;
-        if (email === undefined || email === "") {
-          return common.getNoEmailCard(res);
-        }
-        var data = {
-          email: email,
-          customerId: customerId,
-          addons: [],
-          oldInputs: intercom.input_values,
-        };
-        if (currentAddons !== undefined) {
-          data.currentAddons = currentAddons;
-        }
-        if (intercom.current_canvas.stored_data.nrAddons !== undefined) {
-          data.nrCurrentAddons = intercom.current_canvas.stored_data.nrAddons;
-        }
-        let cbUser = row;
-        chargebee.configure({
-          site: cbUser.sitename,
-          api_key: cbUser.apikey
-        })
-        var planId = intercom.input_values.CUSTOMER_PLAN_ID;
 
-        chargebee.plan.retrieve(planId).request(function (error, result) {
-          var plan = result.plan;
+    let email = intercom.customer.email;
+    if (email === undefined || email === "") {
+      return common.getNoEmailCard(res);
+    }
+    var data = {
+      email: email,
+      customerId: customerId,
+      addons: [],
+      oldInputs: intercom.input_values,
+    };
+    if (currentAddons !== undefined) {
+      data.currentAddons = currentAddons;
+    }
+    if (intercom.current_canvas.stored_data.nrAddons !== undefined) {
+      data.nrCurrentAddons = intercom.current_canvas.stored_data.nrAddons;
+    }
 
-          chargebee.addon.list({
-            "status[is]": "active",
-            "charge_type[is]": "recurring",
-            "period[is]" : plan.period,
-            "period_unit[is]":plan.period_unit
-          }).request(function (addonerror, addonresult) {
-  
-            for (var i = 0; i < addonresult.list.length; i++) {
-              var addon = addonresult.list[i].addon;
-              var ot = {
-                id: addon.id,
-                name: addon.name,
-                currency: addon.currency_code,
-                price: 0
-              }
-              if (parseInt(addon.price) > 0) {
-                ot.price = parseFloat(parseInt(addon.price, 10) / 100).toFixed(2);
-              }
-              data.addons.push(ot);
-            }
-            return res.json(getCard(data));
-          });
-        });
+    var planId = intercom.input_values.CUSTOMER_PLAN_ID;
 
+    chargebee.plan.retrieve(planId).request(function (error, result) {
+      var plan = result.plan;
 
-      } else {
-        return common.getNoAuthCard(res);
-      }
-    });
+      chargebee.addon.list({
+        "status[is]": "active",
+        "charge_type[is]": "recurring",
+        "period[is]": plan.period,
+        "period_unit[is]": plan.period_unit
+      }).request(function (addonerror, addonresult) {
 
-  },
-  newAddon: (db, intercom, res) => {
-
-    db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
-      if (row) {
-        let email = intercom.customer.email;
-        if (email === undefined || email === "") {
-          return common.getNoEmailCard(res);
-        }
-        var currentAddons = intercom.current_canvas.stored_data.addons;
-
-        if (currentAddons === undefined) {
-          currentAddons = [];
-        }
-        var addonId = intercom.input_values.ADDON_ID;
-        var quantity = intercom.input_values.CUSTOMER_ADDON_QTY;
-        if (addonId === undefined || addonId === 'SELECTADDON') {
-          return CreateSubscription.process(db, intercom, res, currentAddons, intercom.current_canvas.stored_data.nrAddons, intercom.current_canvas.stored_data.oldInputs);
-        }
-        let cbUser = row;
-        chargebee.configure({
-          site: cbUser.sitename,
-          api_key: cbUser.apikey
-        });
-        var flag = true;
-        for (var j = 0; j < currentAddons.length; j++) {
-          if (currentAddons[j]['id'] === addonId) {
-            flag = false;
-            break;
+        for (var i = 0; i < addonresult.list.length; i++) {
+          var addon = addonresult.list[i].addon;
+          var ot = {
+            id: addon.id,
+            name: addon.name,
+            currency: addon.currency_code,
+            price: 0
           }
+          if (parseInt(addon.price) > 0) {
+            ot.price = parseFloat(parseInt(addon.price, 10) / 100).toFixed(2);
+          }
+          data.addons.push(ot);
         }
-        if (flag) {
-          chargebee.addon.retrieve(addonId).request(function (addonerror, addonresult) {
-            var addon = addonresult.addon;
-            var ot = {
-              id: addon.id,
-              name: addon.name,
-              currency: addon.currency_code,
-              price: 0,
-              quantity:quantity
-            }
-            if (parseInt(addon.price) > 0) {
-              ot.price = parseFloat(parseInt(addon.price, 10) / 100).toFixed(2);
-            }
-            currentAddons.push(ot);
-            return CreateSubscription.process(db, intercom, res, currentAddons, intercom.current_canvas.stored_data.nrAddons, intercom.current_canvas.stored_data.oldInputs);
-
-          });
-        } else {
-          return CreateSubscription.process(db, intercom, res, currentAddons, intercom.current_canvas.stored_data.nrAddons, intercom.current_canvas.stored_data.oldInputs);
-        }
-      } else {
-        return common.getNoAuthCard(res);
-      }
+        return res.json(getCard(data));
+      });
     });
-
   },
-  goBack: (db, intercom, res) => {
+  newAddon: (chargebee, intercom, res) => {
+
+    let email = intercom.customer.email;
+    if (email === undefined || email === "") {
+      return common.getNoEmailCard(res);
+    }
     var currentAddons = intercom.current_canvas.stored_data.addons;
 
     if (currentAddons === undefined) {
       currentAddons = [];
     }
-    return CreateSubscription.process(db, intercom, res, currentAddons, intercom.current_canvas.stored_data.nrAddons, intercom.current_canvas.stored_data.oldInputs);
+    var addonId = intercom.input_values.ADDON_ID;
+    var quantity = intercom.input_values.CUSTOMER_ADDON_QTY;
+    if (addonId === undefined || addonId === 'SELECTADDON') {
+      return CreateSubscription.process(chargebee, intercom, res, currentAddons, intercom.current_canvas.stored_data.nrAddons, intercom.current_canvas.stored_data.oldInputs);
+    }
+
+    var flag = true;
+    for (var j = 0; j < currentAddons.length; j++) {
+      if (currentAddons[j]['id'] === addonId) {
+        flag = false;
+        break;
+      }
+    }
+    if (flag) {
+      chargebee.addon.retrieve(addonId).request(function (addonerror, addonresult) {
+        var addon = addonresult.addon;
+        var ot = {
+          id: addon.id,
+          name: addon.name,
+          currency: addon.currency_code,
+          price: 0,
+          quantity: quantity
+        }
+        if (parseInt(addon.price) > 0) {
+          ot.price = parseFloat(parseInt(addon.price, 10) / 100).toFixed(2);
+        }
+        currentAddons.push(ot);
+        return CreateSubscription.process(chargebee, intercom, res, currentAddons, intercom.current_canvas.stored_data.nrAddons, intercom.current_canvas.stored_data.oldInputs);
+
+      });
+    } else {
+      return CreateSubscription.process(chargebee, intercom, res, currentAddons, intercom.current_canvas.stored_data.nrAddons, intercom.current_canvas.stored_data.oldInputs);
+    }
+
+
+  },
+  goBack: (chargebee, intercom, res) => {
+    var currentAddons = intercom.current_canvas.stored_data.addons;
+
+    if (currentAddons === undefined) {
+      currentAddons = [];
+    }
+    return CreateSubscription.process(chargebee, intercom, res, currentAddons, intercom.current_canvas.stored_data.nrAddons, intercom.current_canvas.stored_data.oldInputs);
   }
 }

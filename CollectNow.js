@@ -4,8 +4,7 @@ const getCard = (data) => {
     let card = {
         canvas: {
             content: {
-                components: [
-                    {
+                components: [{
                         type: "text",
                         text: "  COLLECT NOW",
                         align: "left",
@@ -24,64 +23,57 @@ const getCard = (data) => {
                     },
                     {
                         type: "text",
-                        text: "Checkout link created successfully and an email is sent to " + data.email,
+                        text: "Link to view the invoices that are due for the customer is created and has been added to the conversation.",
                         align: "left",
                         style: "muted"
                     },
-                  {
+                    {
                         type: "spacer",
                         size: "m"
                     },
                     {
                         type: "text",
-                        text: "CHECKOUT URL",
-                        align: "left",
-                        style: "header"
-                    },
-                    {
-                        type: "text",
-                        text: "["+data.url+"]("+data.url+")",
+                        text: "[" + data.url + "](" + data.url + ")",
                         align: "left"
-                    },{
+                    }, {
                         type: "spacer",
                         size: "m"
                     },
-                  
-                  
+
+
 
                 ]
             },
-            stored_data : {         
-            }
+            stored_data: {}
         },
-      card_creation_options: {
-                  email: data.email,
-                  url : data.url
-     
-              }
+        card_creation_options: {
+            email: data.email,
+            url: data.url,
+            type:'COLLECT-NOW'
+
+        }
     };
-    if(data.customerId !== undefined ) {
-        card.canvas.stored_data.customerId = data.customerId;        
+    if (data.customerId !== undefined) {
+        card.canvas.stored_data.customerId = data.customerId;
     }
     card.canvas.content.components.push({
         type: "button",
         id: "GET-SUBSCRIPTION",
-        label: "<- Go Back",
+        label: "HOME",
         action: {
             type: "submit"
-        },
-        style:"link"
+        }
+
     });
-    
-  return card;
+
+    return card;
 }
 
 const getErrorCard = (data) => {
     let card = {
         canvas: {
             content: {
-                components: [
-                    {
+                components: [{
                         type: "text",
                         text: "  COLLECT NOW",
                         align: "left",
@@ -104,21 +96,21 @@ const getErrorCard = (data) => {
                         align: "left",
                         style: "error"
                     },
-                  {
+                    {
                         type: "spacer",
                         size: "m"
                     }
                 ]
             },
-            stored_data : {     
-                nrAddons :data.nrAddons,
-                addons :data.addons,
+            stored_data: {
+                nrAddons: data.nrAddons,
+                addons: data.addons,
                 oldInputs: data.oldInputs
             }
         }
     };
-    if(data.customerId !== undefined ) {
-        card.canvas.stored_data.customerId = data.customerId;        
+    if (data.customerId !== undefined) {
+        card.canvas.stored_data.customerId = data.customerId;
     }
     card.canvas.content.components.push({
         type: "button",
@@ -127,69 +119,54 @@ const getErrorCard = (data) => {
         action: {
             type: "submit"
         },
-        style:"link"
+        style: "link"
     });
     return card;
-    
+
 }
 module.exports = {
-    process: (db, intercom, res) => {
+    process: (chargebee, intercom, res) => {
 
-      let customerId = intercom.current_canvas.stored_data.customerId;
-        db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
-            if (row) {
-              let email = intercom.customer.email;
-                //email = 'shamim@keyvalue.systems'
-                if (email === undefined || email === "") {
-                    return common.getNoEmailCard(res);
-                }
-                var data = {
-                    email: email,
-                    customerId : customerId
-                };
-               let cbUser = row;
-                chargebee.configure({
-                    site: cbUser.sitename,
-                    api_key: cbUser.apikey
-                });
-              
-              chargebee.customer.retrieve(customerId).request(function (error, result) {
+        let customerId = intercom.current_canvas.stored_data.customerId;
+        if (customerId === undefined) {
+            return common.getErrorCard(res, 'No customer Id - Collect now');
+        } else {
+            let email = intercom.customer.email;
+            var data = {
+                email: email,
+                customerId: customerId
+            };
+
+            chargebee.customer.retrieve(customerId).request(function (error, result) {
                 var customer = result.customer;
-                 var inputData = {
-                   customer : {
-                     id : customer.id,
-                   }
-                 }
-                
-                var card = result.card;
-                
-                if(card !== undefined && card.gateway_account_id !== undefined ) {
-                  inputData.card = {};
-                  inputData.card.gateway_account_id = card.gateway_account_id ;
-                   
-                }
-                
-                chargebee.hosted_page.collect_now(inputData).request(function(hostedPageError,hostedPageResult) {
-                    if(hostedPageError){
-                        data.error = hostedPageError.message;                        
-                        return res.json(getErrorCard(data));
-                    }else{
-                     
-                      var hosted_page = hostedPageResult.hosted_page;
-                      data.url = hosted_page.url;
-                      return res.json(getCard(data));
+                var inputData = {
+                    customer: {
+                        id: customer.id,
                     }
-                  });                 
-                
-              });
+                }
 
+                var card = result.card;
 
-                
-               
-            } else {
-                return common.getNoAuthCard(res);
-            }
-        });
+                if (card !== undefined && card.gateway_account_id !== undefined) {
+                    inputData.card = {};
+                    inputData.card.gateway_account_id = card.gateway_account_id;
+
+                }
+
+                chargebee.hosted_page.collect_now(inputData).request(function (hostedPageError, hostedPageResult) {
+                    if (hostedPageError) {
+                        data.error = hostedPageError.message;
+                        return res.json(getErrorCard(data));
+                    } else {
+
+                        var hosted_page = hostedPageResult.hosted_page;
+                        data.url = hosted_page.url;
+                        return res.json(getCard(data));
+                    }
+                });
+
+            });
+        }
 
     }
 }
