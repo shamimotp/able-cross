@@ -285,15 +285,37 @@ const getCoupons = (data, chargebee, intercom, res,plan,id) => {
                         }
 
                     }
+                  var planSupport = false;
+                  
+                  if(coupon.plan_constraint == "all" || coupon.plan_constraint === "specific") {
+                    planSupport = true;
+                    if(coupon.plan_constraint === "specific" ){
+                       if(coupon.plan_ids !== undefined && coupon.plan_ids.length > 0) {
+                         var inPlans = false;
+                         for(var j=0;j<coupon.plan_ids.length;j++) {
+                           if(coupon.plan_ids[j] === plan.id) {
+                             inPlans = true;
+                             break;
+                              }
+                           
+                         }
+                         planSupport = inPlans;
+                    
+                     }
+                    }
+                  }
+                  
+                  
                    
                    
 
                     if (coupon.discount_amount !== undefined && parseInt(coupon.discount_amount) > 0) {
                         dCoupons.price = coupon.discount_amount;
                     }
-                    if(dCoupons.currency === plan.currency  && max_redemptions) {
+                    if(dCoupons.currency === plan.currency  && max_redemptions && planSupport) {
                         couponList.push(dCoupons);
                     }
+                  
                     
 
                 }

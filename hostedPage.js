@@ -292,7 +292,7 @@ const checkOut = (data, res) => {
 module.exports = {
     process: (chargebee, intercom, res) => {
 
-        let customerId = intercom.current_canvas.stored_data.customerId;
+        let customerId = common.getCustomerId(intercom);
 
         let email = intercom.customer.email;
         //email = 'shamim@keyvalue.systems'
@@ -309,16 +309,14 @@ module.exports = {
                 plan_id: intercom.input_values.CUSTOMER_PLAN_ID,
             },
             customer: {
-                email: email,
+                email: intercom.input_values.CUSTOMER_EMAIL_ID,
             }
 
         };
         if (parseInt(intercom.input_values.CUSTOMER_PLAN_QTY) > 0) {
             inputData.subscription.plan_quantity = parseInt(intercom.input_values.CUSTOMER_PLAN_QTY);
         }
-        if (intercom.input_values.CUSTOMER_COUPON_ID !== undefined) {
-            inputData.subscription.coupon = intercom.input_values.CUSTOMER_COUPON_ID;
-        }
+        
         if (customerId !== undefined) {
             inputData.customer.id = customerId;
         }
@@ -334,15 +332,21 @@ module.exports = {
             inputData.addons = addons;
         }
 
-        if (intercom.current_canvas.stored_data.nrAddons !== undefined) {
+        if (intercom.current_canvas.stored_data.eventAddons !== undefined) {
             var addons = [];
-            for (var i = 0; i < intercom.current_canvas.stored_data.nrAddons.length; i++) {
+            for (var i = 0; i < intercom.current_canvas.stored_data.eventAddons.length; i++) {
                 addons.push({
-                    id: intercom.current_canvas.stored_data.nrAddons[i].id,
+                    id: intercom.current_canvas.stored_data.eventAddons[i].id,
                     charge_on: 'immediately'
                 });
             }
             inputData.event_based_addons = addons;
+        }
+      if (intercom.current_canvas.stored_data.coupons !== undefined ) {
+        if(intercom.current_canvas.stored_data.coupons.length > 0) {
+              inputData.subscription.coupon = intercom.current_canvas.stored_data.coupons[0].id;
+           }
+            
         }
 
 

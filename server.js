@@ -12,16 +12,13 @@ const CustomerUtil = require('./CustomerUtil.js');
 const Subscriptions = require('./Subscriptions.js');
 const Invoices = require('./Invoices.js');
 const CreateSubscription = require('./CreateSubscription');
-const addonAdd = require('./addon');
-const changeAddon = require('./changeAddon');
-const nrAddonAdd = require('./nrAddon');
-const nrChangeAddon = require('./nrChangeAddon');
 const common = require('./common');
 const hostedPage = require('./hostedPage');
 const Payment = require('./Payment');
 const CollectNow = require('./CollectNow');
 const SubscriptionUtil = require('./SubscriptionUtil');
 const ExtraUtil = require('./ExtraUtil');
+const ExtraUIUtil = require('./ExtraUIUtil');
 
 
 app.use(bodyParser.json());
@@ -299,6 +296,10 @@ const processRequest = (chargebee,req, res) => {
         id = action.substring(6);
         action = 'EXTRA-';
       
+    }else if (action.startsWith('EXTRAUI-')) {
+        id = action.substring(8);
+        action = 'EXTRAUI-';
+      
     }
 
     switch(action) {
@@ -323,31 +324,8 @@ const processRequest = (chargebee,req, res) => {
             return CustomerUtil.getCustomer(chargebee, req.body, res);
         case 'EXTRA-' :              
             return ExtraUtil.extraUI(chargebee, req.body, res,id);
-        
-        
-        
-        case 'ADD_RECURRING_ADDDON' :
-            return addonAdd.process(chargebee, req.body, res);
-        case 'ADD-RECURRING-ADDON-CREATE' :
-            return addonAdd.newAddon(chargebee, req.body, res);
-        case 'ADD-RECURRING-ADDON-CANCEL' :
-            return addonAdd.goBack(chargebee, req.body, res);
-        case 'REMOVE_ADDDON-' :
-            return changeAddon.process(chargebee, req.body, res, id);
-        case 'CHANGE-RECURRING-ADDON-':
-            return changeAddon.change(chargebee, req.body, res, id);
-        case 'REMOVE-RECURRING-ADDON-':
-            return changeAddon.remove(chargebee, req.body, res, id);
-        case 'ADD_NON_RECURRING_ADDDON' :
-            return nrAddonAdd.process(chargebee, req.body, res);
-        case 'ADD-NON-RECURRING-ADDON-CREATE' :
-            return nrAddonAdd.newAddon(chargebee, req.body, res);
-        case 'REMOVE_NRADDDON-' :
-            return nrChangeAddon.process(chargebee, req.body, res, id);
-        case 'CHANGE-NON-RECURRING-ADDON-' :
-            return nrChangeAddon.change(chargebee, req.body, res, id);
-        case 'REMOVE-NON-RECURRING-ADDON-' :
-            return nrChangeAddon.remove(chargebee, req.body, res, id);
+        case 'EXTRAUI-' :              
+            return ExtraUIUtil.process(chargebee, req.body, res,id);
         case 'SEND-HOSTED-PAGE' :
             return hostedPage.process(chargebee, req.body, res);
         case 'REQUEST-PAYMENT-METHOD' :

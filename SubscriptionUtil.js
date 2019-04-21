@@ -136,6 +136,9 @@ const getCard = (data) => {
     if (data.eventAddons !== undefined) {
         card.canvas.stored_data.eventAddons = data.eventAddons;
     }
+  if (data.coupons !== undefined) {
+        card.canvas.stored_data.coupons = data.coupons;
+    }
     if (data.hasPlans) {
         card.canvas.stored_data.plans = data.plans;
     }
