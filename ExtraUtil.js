@@ -1,6 +1,7 @@
 const chargebee = require("chargebee");
 const common = require('./common');
 const SubscriptionUtil = require('./SubscriptionUtil');
+const moment = require('moment');
 const getPlan = (planId, plans) => {
     for (var i = 0; i < plans.length; i++) {
         if (plans[i].id === planId) {
@@ -305,6 +306,10 @@ const getCoupons = (data, chargebee, intercom, res,plan,id) => {
                     }
                   }
                   
+                  var validDate = true;
+                  if(coupon.valid_till !== undefined) {
+                     validDate = moment.unix(coupon.valid_till).utc().isAfter();
+                  }
                   
                    
                    
@@ -312,7 +317,7 @@ const getCoupons = (data, chargebee, intercom, res,plan,id) => {
                     if (coupon.discount_amount !== undefined && parseInt(coupon.discount_amount) > 0) {
                         dCoupons.price = coupon.discount_amount;
                     }
-                    if(dCoupons.currency === plan.currency  && max_redemptions && planSupport) {
+                    if(dCoupons.currency === plan.currency  && max_redemptions && planSupport && validDate) {
                         couponList.push(dCoupons);
                     }
                   
