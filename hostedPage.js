@@ -1,5 +1,6 @@
 const common = require('./common');
 const chargebee = require("chargebee");
+const SubscriptionUtil = require('./SubscriptionUtil');
 const getCard = (data) => {
     let card = {
         canvas: {
@@ -23,14 +24,14 @@ const getCard = (data) => {
                     },
                     {
                         type: "text",
-                        text: "Checkout link created successfully. ",
+                        text: "Checkout link created successfully and has been added to the conversation.",
                         align: "left",
                         style: "muted"
                     },
                     {
                         type: "spacer",
                         size: "m"
-                    },                    
+                    },
                     {
                         type: "text",
                         text: "[" + data.url + "](" + data.url + ")",
@@ -49,7 +50,8 @@ const getCard = (data) => {
 
         card_creation_options: {
             email: data.email,
-            url: data.url
+            url: data.url,
+            type: 'CHECK-OUT'
 
         }
     };
@@ -124,10 +126,173 @@ const getErrorCard = (data) => {
     return card;
 
 }
+
+const updatePayment = (data, res) => {
+    let card = {
+        canvas: {
+            content: {
+                components: [{
+                        type: "text",
+                        text: "Please click this link to update your payment method.",
+                        align: "left",
+                        style: "muted"
+                    },
+                    {
+                        type: "spacer",
+                        size: "m"
+                    },
+                    {
+                        type: "text",
+                        text: "[" + data.url + "](" + data.url + ")",
+                        align: "left"
+                    }, {
+                        type: "spacer",
+                        size: "m"
+                    },
+                    {
+                        type: "button",
+                        id: "updatePayment",
+                        label: "Update Payment Method",
+                        style: "link",
+                        action: {
+                            type: "url",
+                            url: data.url
+                        }
+                    }
+
+                ]
+            }
+        }
+    };
+    return res.json(card);
+
+}
+const addPayment = (data, res) => {
+    let card = {
+        canvas: {
+            content: {
+                components: [{
+                        type: "text",
+                        text: "Please click this link to add a payment method to your profile.",
+                        align: "left",
+                        style: "muted"
+                    },
+                    {
+                        type: "spacer",
+                        size: "m"
+                    },
+                    {
+                        type: "text",
+                        text: "[" + data.url + "](" + data.url + ")",
+                        align: "left"
+                    }, {
+                        type: "spacer",
+                        size: "m"
+                    },
+                    {
+                        type: "button",
+                        id: "addPayment",
+                        label: "Add Payment Method ",
+                        style: "link",
+                        action: {
+                            type: "url",
+                            url: data.url
+                        }
+                    }
+
+                ]
+            }
+        }
+    };
+    return res.json(card);
+
+}
+
+const collectNow = (data, res) => {
+    let card = {
+        canvas: {
+            content: {
+                components: [{
+                        type: "text",
+                        text: "Please click this link to view the list of invoices that are due and make payment.",
+                        align: "left",
+                        style: "muted"
+                    },
+                    {
+                        type: "spacer",
+                        size: "m"
+                    },
+                    {
+                        type: "text",
+                        text: "[" + data.url + "](" + data.url + ")",
+                        align: "left"
+                    }, {
+                        type: "spacer",
+                        size: "m"
+                    }, {
+                        type: "button",
+                        id: "collectNow",
+                        label: "View Pending Invoices",
+                        style: "link",
+                        action: {
+                            type: "url",
+                            url: data.url
+                        }
+                    }
+
+                ]
+            }
+        }
+    };
+    return res.json(card);
+
+}
+
+const checkOut = (data, res) => {
+    let card = {
+        canvas: {
+            content: {
+                components: [{
+                        type: "text",
+                        text: "Please click this link to purchase the subscription.",
+                        align: "left",
+                        style: "muted"
+                    },
+                    {
+                        type: "spacer",
+                        size: "m"
+                    },
+                    {
+                        type: "text",
+                        text: "[" + data.url + "](" + data.url + ")",
+                        align: "left"
+                    }, {
+                        type: "spacer",
+                        size: "m"
+                    },{
+                        type: "button",
+                        id: "checkOut",
+                        label: "Checkout Subscription",
+                        style: "link",                       
+                        action: {
+                            type: "url",
+                            url: data.url
+                        }
+                    }
+
+
+                ]
+            }
+        }
+    };
+    return res.json(card);
+
+}
+
 module.exports = {
     process: (chargebee, intercom, res) => {
 
-        let customerId = intercom.current_canvas.stored_data.customerId;
+        let customerId = common.getCustomerId(intercom);
 
         let email = intercom.customer.email;
         //email = 'shamim@keyvalue.systems'
@@ -144,16 +309,14 @@ module.exports = {
                 plan_id: intercom.input_values.CUSTOMER_PLAN_ID,
             },
             customer: {
-                email: email,
+                email: intercom.input_values.CUSTOMER_EMAIL_ID,
             }
 
         };
         if (parseInt(intercom.input_values.CUSTOMER_PLAN_QTY) > 0) {
             inputData.subscription.plan_quantity = parseInt(intercom.input_values.CUSTOMER_PLAN_QTY);
         }
-        if (intercom.input_values.CUSTOMER_COUPON_ID !== undefined) {
-            inputData.subscription.coupon = intercom.input_values.CUSTOMER_COUPON_ID;
-        }
+        
         if (customerId !== undefined) {
             inputData.customer.id = customerId;
         }
@@ -169,25 +332,46 @@ module.exports = {
             inputData.addons = addons;
         }
 
-        if (intercom.current_canvas.stored_data.nrAddons !== undefined) {
+        if (intercom.current_canvas.stored_data.eventAddons !== undefined) {
             var addons = [];
-            for (var i = 0; i < intercom.current_canvas.stored_data.nrAddons.length; i++) {
+            for (var i = 0; i < intercom.current_canvas.stored_data.eventAddons.length; i++) {
                 addons.push({
-                    id: intercom.current_canvas.stored_data.nrAddons[i].id,
+                    id: intercom.current_canvas.stored_data.eventAddons[i].id,
                     charge_on: 'immediately'
                 });
             }
             inputData.event_based_addons = addons;
         }
+      if (intercom.current_canvas.stored_data.coupons !== undefined ) {
+        if(intercom.current_canvas.stored_data.coupons.length > 0) {
+              inputData.subscription.coupon = intercom.current_canvas.stored_data.coupons[0].id;
+           }
+            
+        }
 
 
         chargebee.hosted_page.checkout_new(inputData).request(function (hostedPageError, hostedPageResult) {
             if (hostedPageError) {
-                data.error = hostedPageError.message;
-                data.nrAddons = intercom.current_canvas.stored_data.nrAddons;
-                data.addons = intercom.current_canvas.stored_data.addons;
-                data.oldInputs = intercom.input_values;
-                return res.json(getErrorCard(data));
+                
+              
+                let savedData = {                
+                };             
+                
+
+              if (intercom.current_canvas.stored_data.addons !== undefined) {
+                  savedData.addons = intercom.current_canvas.stored_data.addons;
+              }
+              if (intercom.current_canvas.stored_data.eventAddons !== undefined) {
+                  savedData.eventAddons = intercom.current_canvas.stored_data.eventAddons;
+              }
+              if (intercom.current_canvas.stored_data.coupons !== undefined) {
+                  savedData.coupons = intercom.current_canvas.stored_data.coupons;
+              }
+                savedData.error = hostedPageError;
+              if(intercom.input_values !== undefined) {
+                savedData.oldInputs = intercom.input_values;
+              }
+                return SubscriptionUtil.createUI(chargebee, intercom, res,savedData);
             } else {
 
                 var hosted_page = hostedPageResult.hosted_page;
@@ -199,7 +383,7 @@ module.exports = {
     },
     getmessage: (intercom, res) => {
         var data = intercom.card_creation_options;
-        if (data.email === undefined || data.url === undefined) {
+        if (data.url === undefined) {
             let card = {
                 canvas: {
                     content: {
@@ -220,33 +404,16 @@ module.exports = {
             return res.json(card);
 
         } else {
-            let card = {
-                canvas: {
-                    content: {
-                        components: [{
-                                type: "text",
-                                text: "Checkout link created successfully.",
-                                align: "left",
-                                style: "muted"
-                            },
-                            {
-                                type: "spacer",
-                                size: "m"
-                            },
-                            {
-                                type: "text",
-                                text: "[" + data.url + "](" + data.url + ")",
-                                align: "left"
-                            }, {
-                                type: "spacer",
-                                size: "m"
-                            },
-
-                        ]
-                    }
-                }
-            };
-            return res.json(card);
+            switch (data.type) {
+                case 'UPDATE-PAYMENT':
+                    return updatePayment(data, res);
+                case 'ADD-PAYMENT':
+                    return addPayment(data, res);
+                case 'CHECK-OUT':
+                    return checkOut(data, res);
+                case 'COLLECT-NOW':
+                    return collectNow(data, res);
+            }
         }
     }
 }

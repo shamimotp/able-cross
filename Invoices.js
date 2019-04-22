@@ -74,13 +74,13 @@ const getCard = (data) => {
         options: [{
                 type: "option",
                 id: "Subscriptions",
-                text: "Subscriptions (" + data.subscriptionCount + ")",
+                text: "Subscriptions ",
 
             },
             {
                 type: "option",
                 id: "Invoices",
-                text: "Invoices (" + data.invoiceCount + ")",
+                text: "Invoices ",
                 disabled: true
             }
         ],
@@ -197,49 +197,44 @@ module.exports = {
                     data.card = result.card.card_type + " ending " + result.card.last4;
                     data.hasCard = true;
                 }
-                chargebee.subscription.list({
-                    limit: 100,
-                    "customer_id[is]": customerId
-                }).request(function (subscriptionError, subscriptionResult) {
-                    data.subscriptionCount = subscriptionResult.list.length;
-                    chargebee.invoice.list({
-                        limit: 100,
-                        "customer_id[is]": customerId
-                    }).request(function (invoiceError, invoiceResult) {
-                        if (error) {
-                            console.log(invoiceError);
-                        } else {
-                            data.invoiceCount = invoiceResult.list.length;
+                chargebee.invoice.list({
+                    limit: 5,
+                    "customer_id[is]": customerId,
+                  "sort_by[desc]" : "date"
+                }).request(function (invoiceError, invoiceResult) {
+                    if (error) {
+                        console.log(invoiceError);
+                    } else {
+                       
 
-                            for (var i = 0; i < invoiceResult.list.length; i++) {
-                                var invoice = invoiceResult.list[i].invoice;
+                        for (var i = 0; i < invoiceResult.list.length; i++) {
+                            var invoice = invoiceResult.list[i].invoice;
 
-                                var variObject = {
-                                    title: invoice.id + ", " + invoice.currency_code,
-                                    iDate: moment.unix(invoice.date).utc().format('ll'),
-                                    status: invoice.status
-
-                                }
-                                if (parseInt(invoice.total) > 0) {
-                                    variObject.title = variObject.title + ' ' + parseFloat(parseInt(invoice.total, 10) / 100).toFixed(2);
-                                    variObject.billingPeriod = moment.unix(invoice.line_items[0].date_from).utc().format('ll') + ' to ' + moment.unix(invoice.line_items[0].date_to).utc().format('ll');
-                                    if (invoice.paid_at !== undefined) {
-                                        variObject.paidOn = moment.unix(invoice.paid_at).utc().format('ll');
-                                        variObject.imageURL = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fpaid.png?1554824815739";
-                                    } else {
-                                        variObject.imageURL = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fdue.png?1554824815540";
-                                    }
-                                } else {
-                                    variObject.title = variObject.title + ' 0';
-                                }
-
-                                data.invoice.push(variObject);
+                            var variObject = {
+                                title: invoice.id + ", " + invoice.currency_code,
+                                iDate: moment.unix(invoice.date).utc().format('ll'),
+                                status: invoice.status
 
                             }
-                        }
-                        return res.json(getCard(data));
+                            if (parseInt(invoice.total) > 0) {
+                                variObject.title = variObject.title + ' ' + parseFloat(parseInt(invoice.total, 10) / 100).toFixed(2);
+                                variObject.billingPeriod = moment.unix(invoice.line_items[0].date_from).utc().format('ll') + ' to ' + moment.unix(invoice.line_items[0].date_to).utc().format('ll');
+                                if (invoice.paid_at !== undefined) {
+                                    variObject.paidOn = moment.unix(invoice.paid_at).utc().format('ll');
+                                    variObject.imageURL = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fpaid.png?1554824815739";
+                                } else {
+                                    variObject.imageURL = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fdue.png?1554824815540";
+                                }
+                            } else {
+                                variObject.title = variObject.title + ' 0';
+                            }
 
-                    });
+                            data.invoice.push(variObject);
+
+                        }
+                    }
+                    return res.json(getCard(data));
+
                 });
             }
         });

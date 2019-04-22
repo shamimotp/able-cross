@@ -1,12 +1,18 @@
 const common = require('./common');
 const chargebee = require("chargebee");
 const getCard = (data) => {
+    var title = "ADD PAYMENT METHOD";
+    var msg = 'Link to add a payment method is created successfully and has been added to the conversation.';
+    if(data.update) { 
+        title = "UPDATE PAYMENT METHOD";
+        msg = 'Link to update payment method is created successfully and has been added to the conversation.';
+    }
     let card = {
         canvas: {
             content: {
                 components: [{
                         type: "text",
-                        text: " UPDATE PAYMENT METHOD",
+                        text: title,
                         align: "left",
                         style: "header"
                     },
@@ -23,14 +29,14 @@ const getCard = (data) => {
                     },
                     {
                         type: "text",
-                        text: "An URL to update the payment method has been generated.",
+                        text: msg,
                         align: "left",
                         style: "muted"
                     },
                     {
                         type: "spacer",
                         size: "m"
-                    },                    
+                    },
                     {
                         type: "text",
                         text: "[" + data.url + "](" + data.url + ")",
@@ -52,6 +58,11 @@ const getCard = (data) => {
 
         }
     };
+  if(data.update) {
+    card.card_creation_options.type = 'UPDATE-PAYMENT';     
+  }else {
+    card.card_creation_options.type = 'ADD-PAYMENT'; 
+  }
     if (data.customerId !== undefined) {
         card.canvas.stored_data.customerId = data.customerId;
     }
@@ -131,7 +142,8 @@ module.exports = {
         }
         var data = {
             email: email,
-            customerId: customerId
+            customerId: customerId,
+            update:false
         };
 
 
@@ -148,6 +160,7 @@ module.exports = {
             if (card !== undefined && card.gateway_account_id !== undefined) {
                 inputData.card = {};
                 inputData.card.gateway_account_id = card.gateway_account_id;
+                data.update = true;
 
             }
 

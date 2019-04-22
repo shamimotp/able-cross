@@ -61,7 +61,7 @@ module.exports = {
         };
         return res.json(card);
     },
-    getErrorCard: (res,msg) => {
+    getErrorCard: (res, msg) => {
         let card = {
             canvas: {
                 content: {
@@ -73,14 +73,12 @@ module.exports = {
                 }
             }
         };
-        if(msg!== undefined && msg.trim() !== '') {
-            card.canvas.content.components.push(
-                {
-                    type: "text",
-                    text: msg,
-                    style: "error"
-                }
-            );
+        if (msg !== undefined && msg.trim() !== '') {
+            card.canvas.content.components.push({
+                type: "text",
+                text: msg,
+                style: "error"
+            });
         }
         return res.json(card);
     },
@@ -153,55 +151,55 @@ module.exports = {
     },
     getCustomerList: (customer, preText) => {
         let name = '';
-        if(customer.first_name !== undefined ) {
+        if (customer.first_name !== undefined) {
             name = customer.first_name;
         }
-        if(customer.last_name !== undefined ) {
+        if (customer.last_name !== undefined) {
             name = name + ' ' + customer.last_name;
         }
         name = name.trim();
         let email = '';
-        if(customer.email !== undefined ) {
+        if (customer.email !== undefined) {
             email = customer.email;
         }
         email = email.trim();
 
         let company = '';
-        if(customer.company !== undefined ) {
+        if (customer.company !== undefined) {
             company = customer.company;
         }
         company = company.trim();
 
-        
 
-        if(name ==='') {
+
+        if (name === '') {
             name = email;
             email = company;
-            company ='';
+            company = '';
         }
-        if(name ==='') {
+        if (name === '') {
             name = email;
             email = '';
         }
-        if(name ==='') {
+        if (name === '') {
             name = customer.id;
         }
 
-        let items =  {
+        let items = {
             type: "item",
             id: customer.id,
             title: name
         };
-        if(preText !== undefined) {
+        if (preText !== undefined) {
             items.id = preText + customer.id;
             items.action = {
                 type: "submit"
             }
         }
-        if(email !=='') {
+        if (email !== '') {
             items.subtitle = email;
         }
-        if(company !=='') {
+        if (company !== '') {
             items.tertiary_text = company;
         }
 
@@ -210,6 +208,37 @@ module.exports = {
             items: [items]
         }
         return list;
+    },
+    isEmpty: (error, result) => {
+        if (error) {
+            return true;
+        } else if (result.list.length == 0) {
+            return true;
+        } else {
+            return false;
+        }
+    },
+    getSubscrpitionIcon : (status) => {
+        if(status === undefined) {
+            return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Factive.png?1554737072188";
+        }     
+        if (status === 'cancelled') {
+            return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fcancelled.png?1554817238700";
+        }
+        if (status === 'future') {
+            return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Ffuture.png?1554817240361";
+        }
+        if (status === 'in_trial') {
+            return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fintrail.png?1554817242486";
+        }
+        if (status === 'non_renewing') {
+            return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fnonrenewing.png?1554817244248";
+        }
+        if (status === 'paused') {
+            return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fpaused.png?1554817245989";
+        }
+      return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Factive.png?1554737072188";
     }
+
 
 }

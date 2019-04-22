@@ -12,14 +12,13 @@ const CustomerUtil = require('./CustomerUtil.js');
 const Subscriptions = require('./Subscriptions.js');
 const Invoices = require('./Invoices.js');
 const CreateSubscription = require('./CreateSubscription');
-const addonAdd = require('./addon');
-const changeAddon = require('./changeAddon');
-const nrAddonAdd = require('./nrAddon');
-const nrChangeAddon = require('./nrChangeAddon');
 const common = require('./common');
 const hostedPage = require('./hostedPage');
 const Payment = require('./Payment');
 const CollectNow = require('./CollectNow');
+const SubscriptionUtil = require('./SubscriptionUtil');
+const ExtraUtil = require('./ExtraUtil');
+const ExtraUIUtil = require('./ExtraUIUtil');
 
 
 app.use(bodyParser.json());
@@ -139,7 +138,7 @@ app.get("/auth", function (req, res) {
 app.post("/init", function (req, res) {
     //console.log("Received init: " + JSON.stringify(req.body));    
     if (isSigned(req)) {
-        db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
+        db.get('SELECT * from Dreams where id= "' + req.body.admin.id + '"', function (err, row) {
             if (row) {
                 let cbUser = row;
                 chargebee.configure({
@@ -158,7 +157,7 @@ app.post("/init", function (req, res) {
 app.post("/submit", function (req, res) {
     //console.log("Received submit: " + JSON.stringify(req.body)); 
     if (isSigned(req)) {
-        db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
+        db.get('SELECT * from Dreams where id= "' + req.body.admin.id + '"', function (err, row) {
             if (row) {
                 let cbUser = row;
                 chargebee.configure({
@@ -180,7 +179,7 @@ app.post("/submit", function (req, res) {
 
 app.post("/msg/init", function (req, res) {
     if (isSigned(req)) {
-        db.get('SELECT * from Dreams where id= "' + intercom.admin.id + '"', function (err, row) {
+        db.get('SELECT * from Dreams where id= "' + req.body.admin.id + '"', function (err, row) {
             if (row) {
                 let cbUser = row;
                 chargebee.configure({
@@ -266,76 +265,77 @@ const getLogin = (code, state) => {
 const processRequest = (chargebee,req, res) => {
 
     let action = req.body['component_id'];
+    let id;
+
     if (action === undefined) {
         return common.getErrorCard(res);
     }
-    if(action === 'REFRESH'){
-        return CustomerUtil.refresh(chargebee, req.body, res);
-       }else if (action === 'SEARCH') {
-        return CustomerUtil.search(chargebee, req.body, res);
-    }else if (action === 'COLLECT-NOW') {
-        return CollectNow.process(chargebee, req.body, res);
-    }
-   else  if (action.startsWith('c-list-')) {
-        let customerId = action.substring(7);
-        //console.log("Received submit: " + JSON.stringify(req.body));
-        return CustomerUtil.getCustomer(chargebee, req.body, res, customerId);
 
-    } else if (action === 'MORE-SUBSCRIPTION') {
-        return Subscriptions.process(chargebee, req.body, res);
-    } else if (action == 'GET-SUBSCRIPTION') {
-      let customerId = common.getCustomerId(req.body);
-      if(customerId !== undefined) {
-        return CustomerUtil.getCustomer(chargebee, req.body, res,customerId);
-      }else {
-        return CustomerUtil.getCustomer(chargebee, req.body, res);
-      }
-      
-
-    } else if (action == 'GET-INVOICE') {
-        return Invoices.process(chargebee, req.body, res);
-    } else if (action == 'CREATE-NEW-SUBSCRIPTION') {
-        return CreateSubscription.process(chargebee, req.body, res);
-    } else if (action == 'INIT-PAGE') {
-        return CustomerUtil.getCustomer(chargebee, req.body, res);
-      
-    } else if (action == 'ADD_RECURRING_ADDDON') {
-        return addonAdd.process(chargebee, req.body, res);
-    } else if (action == 'ADD-RECURRING-ADDON-CREATE') {
-        return addonAdd.newAddon(chargebee, req.body, res);
-    } else if (action == 'ADD-RECURRING-ADDON-CANCEL') {
-        return addonAdd.goBack(chargebee, req.body, res);
-    } else if (action.startsWith('REMOVE_ADDDON-')) {
-        let addonID = action.substring(14);
-        return changeAddon.process(chargebee, req.body, res, addonID);
-    } else if (action.startsWith('CHANGE-RECURRING-ADDON-')) {
-        let addonID = action.substring(23);
-        return changeAddon.change(chargebee, req.body, res, addonID);
-    } else if (action.startsWith('REMOVE-RECURRING-ADDON-')) {
-        let addonID = action.substring(23);
-        return changeAddon.remove(chargebee, req.body, res, addonID);
-    } else if (action == 'ADD_NON_RECURRING_ADDDON') {
-        return nrAddonAdd.process(chargebee, req.body, res);
-    } else if (action == 'ADD-NON-RECURRING-ADDON-CREATE') {
-        return nrAddonAdd.newAddon(chargebee, req.body, res);
+    if(action.startsWith('c-list-')) {
+        id = action.substring(7);
+        action = 'c-list-'
+    }else  if (action.startsWith('REMOVE_ADDDON-')) {
+        id = action.substring(14);
+        action = 'REMOVE_ADDDON-';
+    }else if (action.startsWith('CHANGE-RECURRING-ADDON-')) {
+        id = action.substring(23);
+        action = 'CHANGE-RECURRING-ADDON-';
+    }else if (action.startsWith('REMOVE-RECURRING-ADDON-')) {
+        id = action.substring(23);
+        action = 'REMOVE-RECURRING-ADDON-';
     } else if (action.startsWith('REMOVE_NRADDDON-')) {
-        let addonID = action.substring(16);
-        return nrChangeAddon.process(chargebee, req.body, res, addonID);
-    } else if (action.startsWith('CHANGE-NON-RECURRING-ADDON-')) {
-        let addonID = action.substring(27);
-        return nrChangeAddon.change(chargebee, req.body, res, addonID);
-    } else if (action.startsWith('REMOVE-NON-RECURRING-ADDON-')) {
-        let addonID = action.substring(27);
-        return nrChangeAddon.remove(chargebee, req.body, res, addonID);
-    }else if (action == 'SEND-HOSTED-PAGE'){
-        return hostedPage.process(chargebee, req.body, res);
-    }else if (action == 'REQUEST-PAYMENT-METHOD') {
-        return Payment.update(chargebee, req.body, res);
-    }else if (action == 'UPDATE-PAYMENT-METHOD') {
-      return Payment.update(chargebee, req.body, res);
+        id = action.substring(16);
+        action = 'REMOVE_NRADDDON-';
+    }else if (action.startsWith('CHANGE-NON-RECURRING-ADDON-')) {
+        id = action.substring(27);
+        action = 'CHANGE-NON-RECURRING-ADDON-';
+    }else if (action.startsWith('REMOVE-NON-RECURRING-ADDON-')) {
+        id = action.substring(27);
+        action = 'REMOVE-NON-RECURRING-ADDON-';
+    }else if (action.startsWith('EXTRA-')) {
+        id = action.substring(6);
+        action = 'EXTRA-';
+      
+    }else if (action.startsWith('EXTRAUI-')) {
+        id = action.substring(8);
+        action = 'EXTRAUI-';
+      
     }
-    else {
-        common.getErrorCard(res,"Submit error");
+
+    switch(action) {
+        case 'REFRESH'  : 
+            return CustomerUtil.refresh(chargebee, req.body, res);
+        case 'SEARCH'   : 
+            return CustomerUtil.search(chargebee, req.body, res);
+        case 'COLLECT-NOW':
+            return CollectNow.process(chargebee, req.body, res);
+        case 'c-list-' :
+            return CustomerUtil.getCustomer(chargebee, req.body, res, id); 
+        case 'MORE-SUBSCRIPTION' :
+            return Subscriptions.process(chargebee, req.body, res);
+        case 'GET-SUBSCRIPTION' :
+            return CustomerUtil.refresh(chargebee, req.body, res);
+        case 'GET-INVOICE' :
+            return Invoices.process(chargebee, req.body, res);
+        case 'CREATE-NEW-SUBSCRIPTION' :
+            //return CreateSubscription.process(chargebee, req.body, res);
+            return SubscriptionUtil.createUI(chargebee, req.body, res);
+        case 'INIT-PAGE' :
+            return CustomerUtil.getCustomer(chargebee, req.body, res);
+        case 'EXTRA-' :              
+            return ExtraUtil.extraUI(chargebee, req.body, res,id);
+        case 'EXTRAUI-' :              
+            return ExtraUIUtil.process(chargebee, req.body, res,id);
+        case 'SEND-HOSTED-PAGE' :
+            return hostedPage.process(chargebee, req.body, res);
+        case 'REQUEST-PAYMENT-METHOD' :
+            return Payment.update(chargebee, req.body, res);
+        case 'UPDATE-PAYMENT-METHOD' :
+            return Payment.update(chargebee, req.body, res);
+        default :
+            return common.getErrorCard(res,"Submit error");
+
     }
+
 
 }

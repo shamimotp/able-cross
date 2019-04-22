@@ -23,7 +23,7 @@ const getCard = (data) => {
                     },
                     {
                         type: "text",
-                        text: "Checkout link created successfully.",
+                        text: "Link to view the invoices that are due for the customer is created and has been added to the conversation.",
                         align: "left",
                         style: "muted"
                     },
@@ -48,7 +48,8 @@ const getCard = (data) => {
         },
         card_creation_options: {
             email: data.email,
-            url: data.url
+            url: data.url,
+            type:'COLLECT-NOW'
 
         }
     };
