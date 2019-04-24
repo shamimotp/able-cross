@@ -32,6 +32,7 @@ const getCard = (data) => {
             align: "left",
             style: "header"
         });
+        
         card.canvas.content.components.push({
             type: "image",
             url: data.subscriptions[i].imageURl,
@@ -40,31 +41,26 @@ const getCard = (data) => {
             height: 21
         });
 
-        card.canvas.content.components.push({
+        let filedValue = {
             type: "data-table",
             items: [{
-                    type: "field-value",
-                    field: "Subscrption id:",
-                    value: data.subscriptions[i].id
-                },
-                {
-                    type: "field-value",
-                    field: "Subscrption value:",
-                    value: data.subscriptions[i].value
-                }, {
-                    type: "field-value",
-                    field: "Started on:",
-                    value: data.subscriptions[i].startedOn
-                },
-                {
-                    type: "field-value",
-                    field: "Billling period:",
-                    value: data.subscriptions[i].billing_period
-                }
-            ]
-        });
-
-        if (data.subscriptions[i].hasAddon) {
+                type: "field-value",
+                field: "Subscrption id:",
+                value: data.subscriptions[i].id
+            }]
+        };
+    
+        for (var j = 0; j< data.subscriptions[i].fields.length; j++) {
+            filedValue.items.push({
+                type: "field-value",
+                field: data.subscriptions[i].fields[j].key,
+                value: data.subscriptions[i].fields[j].value
+    
+            });
+        }
+    
+        card.canvas.content.components.push(filedValue);
+      if (data.hasAddon) {
             card.canvas.content.components.push({
                 type: "spacer",
                 size: "xs"
@@ -75,12 +71,46 @@ const getCard = (data) => {
                 align: "left",
                 style: "header"
             });
+    
+            var addonItems = {
+                type: "data-table",
+                items: []
+            };
+            for (ai = 0; ai < data.subscription[i].addons.length; ai++) {
+                addonItems.items.push({
+                    type: "field-value",
+                    field: data.subscriptions[i].addons[ai].name + ":",
+                    value: data.subscriptions[i].addons[ai].value
+                });
+            }
+            card.canvas.content.components.push(addonItems);
+        }
+        if (data.hasCoupon) {
+            card.canvas.content.components.push({
+                type: "spacer",
+                size: "xs"
+            });
             card.canvas.content.components.push({
                 type: "text",
-                text: data.subscriptions[i].addonName,
-                align: "left"
+                text: "Coupons",
+                align: "left",
+                style: "header"
             });
+    
+            var couponItems = {
+                type: "data-table",
+                items: []
+            };
+            for (var ai = 0; ai < data.subscription[i].coupons.length; ai++) {
+                couponItems.items.push({
+                    type: "field-value",
+                    field: data.subscriptions[i].coupons[ai].name + ":",
+                    value: data.subscriptions[i].coupons[ai].value
+                });
+            }
+            card.canvas.content.components.push(couponItems);
         }
+       
         card.canvas.content.components.push({
             type: "divider"
         });
@@ -165,7 +195,8 @@ const updateArray = (error, result, sub) => {
 }
 const getListOfSubscriptions = (chargebee, intercom, res, list, data) => {
     data.pArrays = [];
-    data.addonArrays = [];
+    data.addonIds = [];
+    data.couponIds = [];
     for (var i = 0; i < list.length; i++) {
         var subscription = list[i].subscription;
         data.pArrays.push(subscription.plan_id);
@@ -174,35 +205,64 @@ const getListOfSubscriptions = (chargebee, intercom, res, list, data) => {
             plan_id: subscription.plan_id,
             imageURl: common.getSubscrpitionIcon(),
             id: subscription.id,
-            value: subscription.currency_code + ' ',
-            startedOn: moment.unix(subscription.started_at).utc().format('ll'),
-            billing_period: subscription.billing_period + ' ' + subscription.billing_period_unit,
+            value: subscription.currency_code + ' ',            
             hasAddon: false,
-            addonId: '',
-            addonName: '',
-            addonValue: '',
-            currency_code: subscription.currency_code
+            addons: [],
+            coupons: [],
+            currency_code: subscription.currency_code,
+            hasCoupon: false,
         }
-        sdata.imageURl = common.getSubscrpitionIcon(subscription.status);
+        if (subscription.plan_quantity != undefined && parseInt(subscription.plan_quantity) > 0) {
+            sdata.plan_quantity = parseInt(subscription.plan_quantity);
+        }
+
+        let sfields = common.getSubscriptionFieldData(subscription);
+        sdata.imageURl = sfields.image;
+        sdata.fields = sfields.fields;
+
         if (parseInt(subscription.plan_amount) > 0) {
             sdata.value = sdata.value + parseFloat(parseInt(subscription.plan_amount, 10) / 100).toFixed(2);
         } else {
             sdata.value = sdata.value + ' 0.00';
         }
-
-        if (subscription['addons'] != undefined) {
+        if (subscription['addons'] != undefined && subscription['addons'].length > 0) {
             sdata.hasAddon = true;
-            sdata.addonId = subscription['addons'][0]['id'];
-            data.addonArrays.push(subscription['addons'][0]['id']);
-            sdata.addonValue = subscription.currency_code + ' ';
-            if (parseInt(subscription['addons'][0]['amount']) > 0) {
-                sdata.addonValue = sdata.addonValue + parseFloat(parseInt(subscription['addons'][0]['amount'], 10) / 100).toFixed(2);
-            } else {
-                sdata.addonValue + '0.00';
+            for (var j = 0; j < subscription['addons'].length; j++) {
+                var ad = {
+                    id: subscription['addons'][j]['id'],
+                    value: subscription.currency_code + ' ',
+                    quantity: 1
+
+                }
+                if (parseInt(subscription['addons'][j]['quantity']) > 0) {
+                    ad.quantity = subscription['addons'][j]['quantity'];
+                }
+
+                if (parseInt(subscription['addons'][j]['amount']) > 0) {
+                    ad.value = ad.value +
+                        parseFloat(parseInt(subscription['addons'][j]['amount'], 10) / 100).toFixed(2) +
+                        ' x' + ad.quantity;
+                } else {
+                    ad.value = ad.value + '0.00';
+                }
+
+                data.addonIds.push(ad.id);
+                sdata.addons.push(ad);
+
             }
         }
-        sdata.plan = sdata.planId;
-        sdata.addonName = sdata.addonId;
+        if (subscription['coupons'] != undefined && subscription['coupons'].length > 0) {
+            sdata.hasCoupon = true;
+            for (var j = 0; j < subscription['coupons'].length; j++) {
+                //data.subscription.coupons.push(list[0].subscription['coupons'][j]['coupon_id']);
+                var ad = {
+                    id: subscription['coupons'][j]['coupon_id'],
+                }
+                sdata.coupons.push(ad);
+                data.couponIds.push(ad.id);
+            }
+        }
+        //sdata.plan = sdata.planId;
         data.subscriptions.push(sdata);
     }
     chargebee.plan.list({
@@ -211,44 +271,111 @@ const getListOfSubscriptions = (chargebee, intercom, res, list, data) => {
         if (planerror) {
             console.log(planerror);
         } else {
-          
+
             for (var i = 0; i < data.subscriptions.length; i++) {
                 var planC = getPlanById(data.subscriptions[i].plan_id, planresult);
-             
+
                 if (planC) {
-                  planC = planC.plan;
+                    planC = planC.plan;
                     data.subscriptions[i].plan = planC.name + " (" + planC.currency_code + " ";
                     if (parseInt(planC.price) > 0) {
                         data.subscriptions[i].plan = data.subscriptions[i].plan + parseFloat(parseInt(planC.price, 10) / 100).toFixed(2) + ")";
                     } else {
                         data.subscriptions[i].plan = data.subscriptions[i].plan + '0.00 )';
                     }
+                    data.subscriptions[i].plan + " x" + data.subscriptions[i].plan_quantity;
 
                 }
             }
         }
 
-        if (data.addonArrays.length > 0) {
+        if (data.addonIds.length > 0) {
             chargebee.addon.list({
-                "id[in]": data.addonArrays
+                "id[in]": data.addonIds
             }).request(function (addonError, addonResult) {
                 if (addonError) {
                     console.log(addonError);
                 } else {
-                  
                     for (var i = 0; i < data.subscriptions.length; i++) {
                         if (data.subscriptions[i].hasAddon) {
-                            var addonC = getAddonById(data.subscriptions[i].addonId, addonResult);
-                          
-                            if (addonC) {
-                              addonC = addonC.addon;
-                                data.subscriptions[i].addonName = addonC.name + " (" + sdata.addonValue + ")";
+                            for (var ai = 0; ai < data.subscriptions[i].addons; ai++) {
+                                var addonC = getAddonById(data.subscriptions[i].addons[ai].id, addonResult);
+                                if (addonC) {
+                                    addonC = addonC.addon;
+                                    data.subscriptions[i].addons[ai].name = addonC.name
+                                    data.subscriptions[i].addons[ai].value =   " (" +
+                                        data.subscriptions[i].addons[ai].value + ") x" + data.subscriptions[i].addons[ai].quantity;
+
+                                }
+
                             }
+
+
                         }
                     }
 
                 }
-                return res.json(getCard(data, intercom));
+                if (data.couponIds.length > 0) {
+                    chargebee.coupon.list({
+                        "id[in]": data.couponIds
+                    }).request(function (couponError, couponResult) {
+                        for (var i = 0; i < data.subscriptions.length; i++) {
+                            for (var ai = 0; ai < data.subscriptions[i].coupons; ai++) {
+                                var couponC = getCouponById(data.subscriptions[i].coupons[ai].id, couponResult);
+                                if (couponC) {
+                                    couponC = couponC.coupon;
+                                    var cValue =    couponC.currency_code + " ";
+                                    if (couponC.discount_amount !== undefined && parseInt(couponC.discount_amount) > 0) {
+                                        cValue = cValue + parseFloat(parseInt(couponC.discount_amount, 10) / 100).toFixed(2);
+                                    } else {
+                                        cValue = cValue + "0.00";
+                                    }
+                                    data.subscriptions[i].coupons[ai].name = couponC.name;
+                                    data.subscriptions[i].coupons[ai].value = cValue;
+                                    
+                                }
+                            }
+                        }                        
+                        return res.json(getCard(data, intercom));
+
+                    });
+
+                } else {
+                    if (data.couponIds.length > 0) {
+                        chargebee.coupon.list({
+                            "id[in]": data.couponIds
+                        }).request(function (couponError, couponResult) {
+                            for (var i = 0; i < data.subscriptions.length; i++) {
+                                for (var ai = 0; ai < data.subscriptions[i].coupons; ai++) {
+                                    var couponC = getCouponById(data.subscriptions[i].coupons[ai].id, couponResult);
+                                    if (couponC) {
+                                        couponC = couponC.coupon;
+                                        var cValue = couponC.name + " (" + couponC.currency_code + " ";
+                                        if (couponC.discount_amount !== undefined && parseInt(couponC.discount_amount) > 0) {
+                                            cValue = cValue + parseFloat(parseInt(couponC.discount_amount, 10) / 100).toFixed(2);
+                                        } else {
+                                            cValue = cValue + "0.00";
+                                        }
+    
+                                        data.subscriptions[i].coupons[ai].value = cValue;
+                                        
+                                    }
+                                }
+                            }                        
+                            return res.json(getCard(data, intercom));
+    
+                        });
+    
+                    }else {
+                        return res.json(getCard(data, intercom));
+                    }
+
+                   
+                }
+
+
+
+
             });
         } else {
             return res.json(getCard(data, intercom));
@@ -270,6 +397,15 @@ const getPlanById = (planId, planList) => {
 const getAddonById = (id, alist) => {
     for (var i = 0; i < alist.list.length; i++) {
         if (alist.list[i].addon.id === id) {
+            return alist.list[i];
+        }
+    }
+    return null;
+}
+
+const getCouponById = (id, alist) => {
+    for (var i = 0; i < alist.list.length; i++) {
+        if (alist.list[i].coupon.id === id) {
             return alist.list[i];
         }
     }
@@ -340,7 +476,7 @@ module.exports = {
                         return getListOfSubscriptions(chargebee, intercom, res, sub.list, data);
                     }
                 });
-                
+
             }
         });
     }

@@ -1,3 +1,4 @@
+const moment = require('moment');
 module.exports = {
     getNoAuthCard: (res) => {
         let card = {
@@ -209,6 +210,39 @@ module.exports = {
         }
         return list;
     },
+    getCustomerProfile: (data) => {
+        let profile = {
+            type: "data-table",
+            items: [{
+                type: "field-value",
+                field: "Customer since:",
+                value: data.customer.createdAt
+            }]
+        };
+        if (data.customer.unbilled_charges > 0) {
+            profile.items.push({
+                type: "field-value",
+                field: "Total Due:",
+                value: data.customer.totalDue
+            });
+        }
+        if (data.customer.auto_collection > 0) {
+            profile.items.push({
+                type: "field-value",
+                field: "Auto Collection:",
+                value: data.customer.auto_collection
+            });
+        }
+
+        if (data.card !== '') {
+            profile.items.push({
+                type: "field-value",
+                field: "Payament Card:",
+                value: data.card
+            });
+        }
+        return profile;
+    },
     isEmpty: (error, result) => {
         if (error) {
             return true;
@@ -218,10 +252,10 @@ module.exports = {
             return false;
         }
     },
-    getSubscrpitionIcon : (status) => {
-        if(status === undefined) {
+    getSubscrpitionIcon: (status) => {
+        if (status === undefined) {
             return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Factive.png?1554737072188";
-        }     
+        }
         if (status === 'cancelled') {
             return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fcancelled.png?1554817238700";
         }
@@ -237,7 +271,113 @@ module.exports = {
         if (status === 'paused') {
             return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fpaused.png?1554817245989";
         }
-      return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Factive.png?1554737072188";
+        return "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Factive.png?1554737072188";
+    },
+    getSubscriptionFieldData: (subscription) => {
+        let data = {
+            fields: []
+        }
+        switch (subscription.status) {
+            case 'cancelled':
+                data.image = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fcancelled.png?1554817238700";
+                data.fields.push({
+                    key : "Signed Up on:",
+                    value : moment.unix(subscription.started_at).utc().format('ll')
+                });
+                if(subscription.cancelled_at !== undefined) {
+                    data.fields.push({
+                        key : "Cancelled at:",
+                        value : moment.unix(subscription.cancelled_at).utc().format('ll')
+                    })
+                }
+                break;
+                
+            case 'future':
+                data.image = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Ffuture.png?1554817240361";
+                data.fields.push({
+                    key : "Signed Up on:",
+                    value : moment.unix(subscription.started_at).utc().format('ll')
+                });
+                if(subscription.start_date !== undefined) {
+                    data.fields.push({
+                        key : "Start date:",
+                        value : moment.unix(subscription.start_date).utc().format('ll')
+                    })
+                }
+                break;
+            case 'in_trial':
+                data.image = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fintrail.png?1554817242486";
+                data.fields.push({
+                    key : "Signed Up on:",
+                    value : moment.unix(subscription.started_at).utc().format('ll')
+                });
+                if(subscription.trial_start !== undefined) {
+                    data.fields.push({
+                        key : "Trial start:",
+                        value : moment.unix(subscription.trial_start).utc().format('ll')
+                    })
+                }
+                if(subscription.trial_end !== undefined) {
+                    data.fields.push({
+                        key : "Trial end:",
+                        value : moment.unix(subscription.trial_end).utc().format('ll')
+                    })
+                }
+                if(subscription.cancelled_at !== undefined) {
+                    data.fields.push({
+                        key : "Cancelled at:",
+                        value : moment.unix(subscription.cancelled_at).utc().format('ll')
+                    })
+                }
+                break;
+            case 'non_renewing':
+                data.image = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fnonrenewing.png?1554817244248";
+                data.fields.push({
+                    key : "Signed Up on:",
+                    value : moment.unix(subscription.started_at).utc().format('ll')
+                });
+                if(subscription.cancelled_at !== undefined) {
+                    data.fields.push({
+                        key : "Cancelled at:",
+                        value : moment.unix(subscription.cancelled_at).utc().format('ll')
+                    })
+                }
+                break;
+            case 'paused':
+                data.image = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fpaused.png?1554817245989";
+                data.fields.push({
+                    key : "Signed Up on:",
+                    value : moment.unix(subscription.started_at).utc().format('ll')
+                });
+                if(subscription.pause_date !== undefined) {
+                    data.fields.push({
+                        key : "Paused on:",
+                        value : moment.unix(subscription.pause_date).utc().format('ll')
+                    })
+                }
+                if(subscription.resume_date !== undefined) {
+                    data.fields.push({
+                        key : "Resume on:",
+                        value : moment.unix(subscription.resume_date).utc().format('ll')
+                    })
+                }
+                break;
+            default:
+                data.image = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Factive.png?1554737072188";
+                data.fields.push({
+                    key : "Signed Up on:",
+                    value : moment.unix(subscription.started_at).utc().format('ll')
+                });
+                if(subscription.current_term_end !== undefined) {
+                    data.fields.push({
+                        key : "Current term end:",
+                        value : moment.unix(subscription.current_term_end).utc().format('ll')
+                    })
+                }
+                break;
+        }
+      return data;
+
     }
 
 

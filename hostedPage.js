@@ -153,7 +153,6 @@ const updatePayment = (data, res) => {
                         type: "button",
                         id: "updatePayment",
                         label: "Update Payment Method",
-                        style: "link",
                         action: {
                             type: "url",
                             url: data.url
@@ -192,8 +191,7 @@ const addPayment = (data, res) => {
                     {
                         type: "button",
                         id: "addPayment",
-                        label: "Add Payment Method ",
-                        style: "link",
+                        label: "Add Payment Method ",                        
                         action: {
                             type: "url",
                             url: data.url
@@ -232,8 +230,7 @@ const collectNow = (data, res) => {
                     }, {
                         type: "button",
                         id: "collectNow",
-                        label: "View Pending Invoices",
-                        style: "link",
+                        label: "View Pending Invoices",                        
                         action: {
                             type: "url",
                             url: data.url
@@ -273,7 +270,7 @@ const checkOut = (data, res) => {
                         type: "button",
                         id: "checkOut",
                         label: "Checkout Subscription",
-                        style: "link",                       
+                                           
                         action: {
                             type: "url",
                             url: data.url
