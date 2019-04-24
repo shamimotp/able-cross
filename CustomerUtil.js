@@ -18,7 +18,7 @@ const getByMail = (chargebee, intercom, res) => {
             }
             if (result.list.length == 1) {
                 var entry = result.list[0]
-                return Customer.get(chargebee, res, entry.customer, intercom);
+                return Customer.get(chargebee, res, entry.customer, intercom,entry.card);
             }
             if (result.list.length > 1) {
                 return CustomerList.process(result.list, email, res);
@@ -61,7 +61,7 @@ const process = (chargebee, intercom, res, cId) => {
             if (error) {
                 return getByMail(chargebee, intercom, res);
             } else {
-                return Customer.get(chargebee, res, result.customer, intercom);
+                return Customer.get(chargebee, res, result.customer, intercom,result.card);
             }
         });
     } else {

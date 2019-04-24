@@ -92,43 +92,7 @@ const getCard = (data, intercom) => {
     };
 
 
-    let profile = {
-        type: "data-table",
-        items: [{
-            type: "field-value",
-            field: "Customer since:",
-            value: data.customer.createdAt
-        }]
-    };
-    if (data.customer.promotional_credits > 0) {
-        profile.items.push({
-            type: "field-value",
-            field: "Promotional credits:",
-            value: data.customer.promotional_credits
-        });
-    }
-    if (data.customer.unbilled_charges > 0) {
-        profile.items.push({
-            type: "field-value",
-            field: "Unbilled charges:",
-            value: data.customer.unbilled_charges
-        });
-    }
-    if (data.customer.refundable_credits > 0) {
-        profile.items.push({
-            type: "field-value",
-            field: "Refundable credits:",
-            value: data.customer.refundable_credits
-        });
-    }
-
-    if (data.card !== '') {
-        profile.items.push({
-            type: "field-value",
-            field: "Payament Card:",
-            value: data.card
-        });
-    }
+    let profile = common.getCustomerProfile(data);
 
     card.canvas.content.components.push(profile);
     card.canvas.content.components.push({
@@ -167,6 +131,8 @@ const getCard = (data, intercom) => {
         align: "left",
         style: "header"
     });
+    
+
     card.canvas.content.components.push({
         type: "image",
         url: data.subscription.imageURl,
@@ -174,32 +140,27 @@ const getCard = (data, intercom) => {
         width: 63,
         height: 21
     });
-    card.canvas.content.components.push({
+
+    let filedValue = {
         type: "data-table",
         items: [{
-                type: "field-value",
-                field: "Subscrption id:",
-                value: data.subscription.id
-            },
-            {
-                type: "field-value",
-                field: "Subscrption value:",
-                value: data.subscription.value
-            }, {
-                type: "field-value",
-                field: "Started on:",
-                value: data.subscription.started_at
-            },
-            {
-                type: "field-value",
-                field: "Billling period:",
-                value: data.subscription.billing_period
-            }
-        ]
-    });
-    //--------------------
+            type: "field-value",
+            field: "Subscrption id:",
+            value: data.subscription.id
+        }]
+    };
 
-    if (data.hasAddon) {
+    for (var i = 0; i < data.subscription.fields.length; i++) {
+        filedValue.items.push({
+            type: "field-value",
+            field: data.subscription.fields[i].key,
+            value: data.subscription.fields[i].value
+
+        });
+    }
+
+    card.canvas.content.components.push(filedValue);
+  if (data.hasAddon) {
         card.canvas.content.components.push({
             type: "spacer",
             size: "xs"
@@ -210,15 +171,48 @@ const getCard = (data, intercom) => {
             align: "left",
             style: "header"
         });
-        card.canvas.content.components.push({
+
+        var addonItems = {
             type: "data-table",
-            items: [{
+            items: []
+        };
+        for (ai = 0; ai < data.subscription.addons.length; ai++) {
+            addonItems.items.push({
                 type: "field-value",
-                field: data.subscription.addonName + ":",
-                value: data.subscription.addonValue
-            }]
-        });
+                field: data.subscription.addons[ai].name + ":",
+                value: data.subscription.addons[ai].value
+            });
+        }
+        card.canvas.content.components.push(addonItems);
     }
+    if (data.hasCoupon) {
+        card.canvas.content.components.push({
+            type: "spacer",
+            size: "xs"
+        });
+        card.canvas.content.components.push({
+            type: "text",
+            text: "Coupons",
+            align: "left",
+            style: "header"
+        });
+
+        var couponItems = {
+            type: "data-table",
+            items: []
+        };
+        for (var ai = 0; ai < data.subscription.coupons.length; ai++) {
+            couponItems.items.push({
+                type: "field-value",
+                field: data.subscription.coupons[ai].name + ":",
+                value: data.subscription.coupons[ai].value
+            });
+        }
+        card.canvas.content.components.push(couponItems);
+    }
+    //--------------------
+
+
     if (data.subscription.hasMore) {
         card.canvas.content.components.push({
             type: "button",
@@ -326,9 +320,10 @@ const getCard = (data, intercom) => {
             }
         }
     }
+    
     return card;
 }
-const updateCustomerData = (data, customer) => {
+const updateCustomerData = (data, customer, card) => {
     data.customer = {
         id: customer.id,
         first_name: customer.first_name,
@@ -336,57 +331,117 @@ const updateCustomerData = (data, customer) => {
         email: customer.email,
         company: customer.company,
         createdAt: moment.unix(customer.created_at).utc().format('ll'),
-        promotional_credits: customer.promotional_credits,
+        currency_code: customer.preferred_currency_code,
         unbilled_charges: customer.unbilled_charges,
-        refundable_credits: customer.refundable_credits,
+        totalDue: customer.preferred_currency_code + " ",
+
     }
+
+    if (parseInt(data.customer.unbilled_charges) > 0) {
+        data.customer.totalDue = data.customer.totalDue + parseFloat(parseInt(data.customer.unbilled_charges, 10) / 100).toFixed(2);
+    } else {
+        data.customer.totalDue = data.customer.totalDue + "0.00";
+    }
+
+    if (customer.auto_collection !== undefined) {
+        data.customer.auto_collection = customer.auto_collection;
+    }
+
+    if (card !== undefined) {
+        data.card = card.card_type + " ending " + card.last4;
+        data.hasCard = true;
+    }
+
 
     return data;
 }
 
-const updateSubscriptionData = (data, list,hasMore) => {
+
+const updateSubscriptionData = (data, list, hasMore) => {
     data.subscription = {
         id: list[0].subscription.id,
         plan: '',
         plan_id: list[0].subscription.plan_id,
-        imageURl: common.getSubscrpitionIcon(),
-        value: list[0].subscription.currency_code + ' ',
-        started_at: moment.unix(list[0].subscription.started_at).utc().format('ll'),
-        billing_period: list[0].subscription.billing_period + ' ' + list[0].subscription.billing_period_unit,
+        plan_quantity : 1,
+        imageURl: common.getSubscrpitionIcon(list[0].subscription.status),
         currency_code: list[0].subscription.currency_code,
-        hasMore : hasMore
-    }
-    if (list[0].card !== undefined) {
-        data.card = list[0].card.card_type + " ending " + list[0].card.last4;
-        data.hasCard = true;
-    }
-    if (parseInt(list[0].subscription.plan_amount) > 0) {
-        data.subscription.value = data.subscription.value + parseFloat(parseInt(list[0].subscription.plan_amount, 10) / 100).toFixed(2);
-    } else {
-        data.subscription.value = data.subscription.value + ' 0.00';
-    }
-    if (parseInt(data.customer.promotional_credits) > 0) {
-        data.customer.promotional_credits = data.subscription.currency_code + ' ' + parseFloat(parseInt(data.customer.promotional_credits, 10) / 100).toFixed(2);
-    }
-    if (parseInt(data.customer.unbilled_charges) > 0) {
-        data.customer.unbilled_charges = data.subscription.currency_code + ' ' + parseFloat(parseInt(data.customer.unbilled_charges, 10) / 100).toFixed(2);
-    }
-    if (parseInt(data.customer.refundable_credits) > 0) {
-        data.customer.refundable_credits = data.subscription.currencyCode + ' ' + parseFloat(parseInt(data.customer.refundable_credits, 10) / 100).toFixed(2);
+        status: list[0].subscription.status,
+        hasMore: hasMore,
+        addons: [],
+        addonIds: [],
+        coupons: [],
+        couponIds: [],
+
     }
 
-    if (list[0].subscription['addons'] != undefined) {
+    if( list[0].subscription.plan_quantity  != undefined && parseInt(list[0].subscription.plan_quantity) > 0){
+        data.subscription.plan_quantity = parseInt(list[0].subscription.plan_quantity);
+    }
+
+    let sfields = common.getSubscriptionFieldData(list[0].subscription);
+    data.subscription.imageURl = sfields.image;
+    data.subscription.fields = sfields.fields;
+
+    if (list[0].subscription['addons'] != undefined && list[0].subscription['addons'].length > 0) {
         data.hasAddon = true;
-        data.subscription.addonId = list[0].subscription['addons'][0]['id'];
-        data.subscription.addonValue = list[0].subscription.currency_code + ' ';
-        if (parseInt(list[0].subscription['addons'][0]['amount']) > 0) {
-            data.subscription.addonValue = data.subscription.addonValue + parseFloat(parseInt(list[0].subscription['addons'][0]['amount'], 10) / 100).toFixed(2);
+        for (var j = 0; j < list[0].subscription['addons'].length; j++) {
+            var ad = {
+                id: list[0].subscription['addons'][j]['id'],
+                value: list[0].subscription.currency_code + ' ',
+                quantity: 1
+
+            }
+            if (parseInt(list[0].subscription['addons'][j]['quantity']) > 0) {
+                ad.quantity = list[0].subscription['addons'][j]['quantity'];
+            }
+
+            if (parseInt(list[0].subscription['addons'][j]['amount']) > 0) {
+                ad.value = ad.value +
+                    parseFloat(parseInt(list[0].subscription['addons'][j]['amount'], 10) / 100).toFixed(2) +
+                    ' x' + ad.quantity;
+            } else {
+                ad.value = ad.value + '0.00';
+            }
+
+            data.subscription.addonIds.push(ad.id);
+            data.subscription.addons.push(ad);
+
+        }
+    }
+    /*if (list[0].subscription['event_based_addons'] != undefined && list[0].subscription['event_based_addons'].length > 0) {
+        data.hasAddon = true;
+        for (var j = 0; j < list[0].subscription['event_based_addons'].length; j++) {
+
+            var ad = {
+                id: list[0].subscription['event_based_addons'][j]['id'],
+                value: list[0].subscription.currency_code + ' ',
+                quantity: list[0].subscription['event_based_addons'][j]['quantity']
+            }
+            addonIds.push(ad.id);
+            if (parseInt(list[0].subscription['event_based_addons'][j]['unit_price']) > 0) {
+                ad.value = ad.value + parseFloat(parseInt(list[0].subscription['event_based_addons'][j]['unit_price'], 10) / 100).toFixed(2);
+            } else {
+                ad.value = ad.value + '0.00';
+            }
+            data.subscription.addons.push(ad);
+        }
+    }*/
+    if (list[0].subscription['coupons'] != undefined && list[0].subscription['coupons'].length > 0) {
+        data.hasCoupon = true;
+        for (var j = 0; j < list[0].subscription['coupons'].length; j++) {
+            //data.subscription.coupons.push(list[0].subscription['coupons'][j]['coupon_id']);
+            var ad = {
+                id: list[0].subscription['coupons'][j]['coupon_id'],
+            }
+            data.subscription.coupons.push(ad);
+            data.subscription.couponIds.push(ad.id);
         }
     }
 
+
     return data;
 }
-const getRequestList = (chargebee,customer) => {
+const getRequestList = (chargebee, customer) => {
     return {
         ac: chargebee.subscription.list({
             limit: 1,
@@ -434,24 +489,98 @@ const getCustomerCards = (chargebee, data, res, intercom) => {
             console.log(planerror);
         } else {
 
-            data.subscription.plan = planresult.plan.name + " ("+ planresult.plan.currency_code+ " ";
-          if (parseInt(planresult.plan.price) > 0) {
-        data.subscription.plan = data.subscription.plan + parseFloat(parseInt(planresult.plan.price, 10) / 100).toFixed(2) +")";
-    } else {
-        data.subscription.plan = data.subscription.plan + '0.00 )';
-    }
+            data.subscription.plan = planresult.plan.name + " (" + planresult.plan.currency_code + " ";
 
-            
+            if (parseInt(planresult.plan.price) > 0) {
+                data.subscription.plan = data.subscription.plan +
+                    parseFloat(parseInt(planresult.plan.price, 10) / 100).toFixed(2) + ")";
+            } else {
+                data.subscription.plan = data.subscription.plan + '0.00 )';
+            }
+            data.subscription.plan = data.subscription.plan +" x" + data.subscription.plan_quantity;
+
+           
         }
         if (data.hasAddon) {
-            chargebee.addon.retrieve(data.subscription.addonId).request(function (addonError, addonResult) {
+            chargebee.addon.list({
+                "id[in]": data.subscription.addonIds
+            }).request(function (addonError, addonResult) {
                 if (addonError) {
                     console.log(addonError);
                 } else {
-                    data.subscription.addonName = addonResult.addon.name;
+                    for (var i = 0; i < addonResult.list.length; i++) {
+                        var aId = addonResult.list[i].addon.id;
+                        for (var j = 0; j < data.subscription.addons.length; j++) {
+                            if (data.subscription.addons[j].id === aId) {
+                                data.subscription.addons[j].name = addonResult.list[i].addon.name;
+                            }
+                        }
+
+                    }
+
+                }
+                if (data.hasCoupon) {
+                    chargebee.coupon.list({
+                        "id[in]": data.subscription.couponIds
+                    }).request(function (couponError, couponResult) {
+                        for (var i = 0; i < couponResult.list.length; i++) {
+                            var aId = couponResult.list[i].coupon.id;
+                            var cNAme = couponResult.list[i].coupon.name;
+                            var cValue = couponResult.list[i].coupon.currency_code + " ";
+                            if (couponResult.list[i].coupon.discount_amount !== undefined && parseInt(couponResult.list[i].coupon.discount_amount) > 0) {
+                                cValue = cValue + parseFloat(parseInt(couponResult.list[i].coupon.discount_amount, 10) / 100).toFixed(2);
+                            } else {
+                                cValue = cValue + "0.00";
+                            }
+
+                            for (var j = 0; j < data.subscription.coupons.length; j++) {
+                                if (data.subscription.coupons[j].id === aId) {
+                                    data.subscription.coupons[j].name = cNAme;
+                                    data.subscription.coupons[j].value = cValue
+
+
+                                }
+                            }
+
+                        }
+                        return res.json(getCard(data, intercom));
+
+                    });
+
+                } else {
+                    return res.json(getCard(data, intercom));
+                }
+
+            });
+        } else if (data.hasCoupon) {
+            chargebee.coupon.list({
+                "id[in]": data.subscription.couponIds
+            }).request(function (couponError, couponResult) {
+
+                for (var i = 0; i < couponResult.list.length; i++) {
+                    var aId = couponResult.list[i].coupon.id;
+                    var cNAme = couponResult.list[i].coupon.name;
+                    var cValue = couponResult.list[i].coupon.currency_code + " ";
+                    if (couponResult.list[i].coupon.discount_amount !== undefined && parseInt(couponResult.list[i].coupon.discount_amount) > 0) {
+                        cValue = cValue + parseFloat(parseInt(couponResult.list[i].coupon.discount_amount, 10) / 100).toFixed(2);
+                    } else {
+                        cValue = cValue + "0.00";
+                    }
+
+                    for (var j = 0; j < data.subscription.coupons.length; j++) {
+                        if (data.subscription.coupons[j].id === aId) {
+                            data.subscription.coupons[j].name = cNAme;
+                            data.subscription.coupons[j].value = cValue
+
+
+                        }
+                    }
+
                 }
                 return res.json(getCard(data, intercom));
             });
+
+
         } else {
             return res.json(getCard(data, intercom));
         }
@@ -459,21 +588,22 @@ const getCustomerCards = (chargebee, data, res, intercom) => {
 }
 
 
-const getCustomerWithSubScription = (chargebee, res, list, customer, intercom) => {
+const getCustomerWithSubScription = (chargebee, res, list, customer, intercom, card) => {
     let data = {
         card: '',
         hasCard: false,
         hasAddon: false,
+        hasCoupon: false,
     };
 
-    data = updateCustomerData(data, customer);
+    data = updateCustomerData(data, customer, card);
     if (list) {
-        data = updateSubscriptionData(data, list,false);
-        
+        data = updateSubscriptionData(data, list, false);
+
         return getCustomerCards(chargebee, data, res, intercom);
     } else {
-       
-        let sr = getRequestList(chargebee,customer);
+
+        let sr = getRequestList(chargebee, customer);
         sr.ac.request(function (e1, r1) {
             if (common.isEmpty(e1, r1)) {
                 sr.nr.request(function (e2, r2) {
@@ -488,32 +618,32 @@ const getCustomerWithSubScription = (chargebee, res, list, customer, intercom) =
                                                     if (common.isEmpty(e6, r6)) {
                                                         console.log("NO subscription");
                                                     } else {
-                                                        data = updateSubscriptionData(data, r6.list,true);
+                                                        data = updateSubscriptionData(data, r6.list, true);
                                                         return getCustomerCards(chargebee, data, res, intercom);
                                                     }
                                                 });
                                             } else {
-                                                data = updateSubscriptionData(data, r5.list,true);
+                                                data = updateSubscriptionData(data, r5.list, true);
                                                 return getCustomerCards(chargebee, data, res, intercom);
                                             }
                                         });
                                     } else {
-                                        data = updateSubscriptionData(data, r4.list,true);
+                                        data = updateSubscriptionData(data, r4.list, true);
                                         return getCustomerCards(chargebee, data, res, intercom);
                                     }
                                 });
                             } else {
-                                data = updateSubscriptionData(data, r3.list,true);
+                                data = updateSubscriptionData(data, r3.list, true);
                                 return getCustomerCards(chargebee, data, res, intercom);
                             }
                         });
                     } else {
-                        data = updateSubscriptionData(data, r2.list,true);
+                        data = updateSubscriptionData(data, r2.list, true);
                         return getCustomerCards(chargebee, data, res, intercom);
                     }
                 });
             } else {
-                data = updateSubscriptionData(data, r1.list,true);
+                data = updateSubscriptionData(data, r1.list, true);
                 return getCustomerCards(chargebee, data, res, intercom);
             }
         });
@@ -529,6 +659,11 @@ module.exports = {
         chargebee.customer.retrieve(customerId).request(function (error, result) {
 
             var customer = result.customer;
+            let card;
+            let intercom;
+            if (result.card !== undefined) {
+                card = result.card;
+            }
             chargebee.subscription.list({
                 limit: 100,
                 "customer_id[is]": customerId
@@ -537,12 +672,12 @@ module.exports = {
                     return getCustomer(customer, res);
                 } else {
 
-                    return getCustomerWithSubScription(chargebee, res, subResult.list, customer);
+                    return getCustomerWithSubScription(chargebee, res, subResult.list, customer, intercom, card);
                 }
             });
         });
     },
-    get: (chargebee, res, customer, intercom) => {
+    get: (chargebee, res, customer, intercom, card) => {
         chargebee.subscription.list({
             limit: 1,
             "customer_id[is]": customer.id
@@ -552,9 +687,9 @@ module.exports = {
                     return getCustomer(customer, res, intercom);
                 } else {
                     if (subResult.next_offset === undefined) {
-                        return getCustomerWithSubScription(chargebee, res, subResult.list, customer, intercom);
+                        return getCustomerWithSubScription(chargebee, res, subResult.list, customer, intercom, card);
                     } else {
-                        return getCustomerWithSubScription(chargebee, res, null, customer, intercom);
+                        return getCustomerWithSubScription(chargebee, res, null, customer, intercom, card);
                     }
 
                 }
