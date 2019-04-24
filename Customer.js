@@ -83,6 +83,12 @@ const getCard = (data, intercom) => {
                         align: "left",
                         style: "header"
                     },
+                  {
+                        type: "text",
+                        text: "Customer ID:  " + "[" + data.customer.id  + "](" +  data.customer.url + ")",
+                        align: "left",        
+                        
+                    }
                 ]
             },
             stored_data: {
@@ -140,16 +146,20 @@ const getCard = (data, intercom) => {
         width: 63,
         height: 21
     });
+  card.canvas.content.components.push({
+        type: "text",
+        text: "Subscrption id: "+ "[" + data.subscription.id  + "](" +  data.subscription.url + ")",
+        align: "left",
+    });
 
+  
+    
+
+  if(data.subscription.fields.length > 0 ){
     let filedValue = {
         type: "data-table",
-        items: [{
-            type: "field-value",
-            field: "Subscrption id:",
-            value: data.subscription.id
-        }]
+        items: []
     };
-
     for (var i = 0; i < data.subscription.fields.length; i++) {
         filedValue.items.push({
             type: "field-value",
@@ -160,6 +170,10 @@ const getCard = (data, intercom) => {
     }
 
     card.canvas.content.components.push(filedValue);
+    
+     }
+    
+  
   if (data.hasAddon) {
         card.canvas.content.components.push({
             type: "spacer",
@@ -484,6 +498,10 @@ const getRequestList = (chargebee, customer) => {
 
 }
 const getCustomerCards = (chargebee, data, res, intercom) => {
+  if(data.subscription !== undefined && data.subscription.id !==undefined) {
+    data.subscription.url = intercom.chargebee.cbURL+"admin-console/subscriptions/"+data.subscription.id;
+     }
+   
     chargebee.plan.retrieve(data.subscription.plan_id).request(function (planerror, planresult) {
         if (planerror) {
             console.log(planerror);
@@ -597,6 +615,8 @@ const getCustomerWithSubScription = (chargebee, res, list, customer, intercom, c
     };
 
     data = updateCustomerData(data, customer, card);
+  data.customer.url = intercom.chargebee.cbURL+"admin-console/customers/"+customer.id;
+  
     if (list) {
         data = updateSubscriptionData(data, list, false);
 

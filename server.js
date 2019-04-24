@@ -45,7 +45,7 @@ db.serialize(function () {
             db.run('INSERT INTO Dreams (id,sitename,apikey,token) VALUES ("1","sitename","apikey","token")');
         });
     } else {
-        console.log('Database "Dreams" ready to go!');       
+        console.log('Database "Dreams" ready to go!');
     }
 });
 
@@ -145,12 +145,18 @@ app.post("/init", function (req, res) {
                     site: cbUser.sitename,
                     api_key: cbUser.apikey
                 });
-                return CustomerUtil.getCustomer(chargebee, req.body, res);
-            }else {
+                
+                let intercom = req.body;
+                intercom.chargebee = {
+                    cbURL: "https://" + cbUser.sitename + ".chargebee.com/"
+                }
+
+                return CustomerUtil.getCustomer(chargebee, intercom, res);
+            } else {
                 return common.getNoAuthCard(res);
             }
         });
-    }else {
+    } else {
         return res.send("{}");
     }
 });
@@ -164,12 +170,14 @@ app.post("/submit", function (req, res) {
                     site: cbUser.sitename,
                     api_key: cbUser.apikey
                 });
-                return processRequest(chargebee,req, res);
-            }else {
+                let cbURL = "https://" + cbUser.sitename + ".chargebee.com/";
+
+                return processRequest(chargebee, req, res, cbURL);
+            } else {
                 return common.getNoAuthCard(res);
             }
         });
-                
+
     } else {
         return res.send("{}");
     }
@@ -186,15 +194,15 @@ app.post("/msg/init", function (req, res) {
                     site: cbUser.sitename,
                     api_key: cbUser.apikey
                 });
-                return hostedPage.getmessage(req.body, res);        
-            }else {
+                return hostedPage.getmessage(req.body, res);
+            } else {
                 return common.getNoAuthCard(res);
             }
         });
-                
+
     } else {
         return res.send("{}");
-    }    
+    }
 });
 
 app.post("/msg/submit", function (req, res) {
@@ -218,7 +226,7 @@ app.post("/msg/submit", function (req, res) {
 });
 
 app.post("/msg/config", function (req, res) {
-    console.log("Received config: " + JSON.stringify(req.body));    
+    console.log("Received config: " + JSON.stringify(req.body));
     if (isSigned(req)) {
         let card = {
             canvas: {
@@ -262,7 +270,7 @@ const getLogin = (code, state) => {
 
 
 
-const processRequest = (chargebee,req, res) => {
+const processRequest = (chargebee, req, res, cbURL) => {
 
     let action = req.body['component_id'];
     let id;
@@ -271,69 +279,75 @@ const processRequest = (chargebee,req, res) => {
         return common.getErrorCard(res);
     }
 
-    if(action.startsWith('c-list-')) {
+    if (action.startsWith('c-list-')) {
         id = action.substring(7);
         action = 'c-list-'
-    }else  if (action.startsWith('REMOVE_ADDDON-')) {
+    } else if (action.startsWith('REMOVE_ADDDON-')) {
         id = action.substring(14);
         action = 'REMOVE_ADDDON-';
-    }else if (action.startsWith('CHANGE-RECURRING-ADDON-')) {
+    } else if (action.startsWith('CHANGE-RECURRING-ADDON-')) {
         id = action.substring(23);
         action = 'CHANGE-RECURRING-ADDON-';
-    }else if (action.startsWith('REMOVE-RECURRING-ADDON-')) {
+    } else if (action.startsWith('REMOVE-RECURRING-ADDON-')) {
         id = action.substring(23);
         action = 'REMOVE-RECURRING-ADDON-';
     } else if (action.startsWith('REMOVE_NRADDDON-')) {
         id = action.substring(16);
         action = 'REMOVE_NRADDDON-';
-    }else if (action.startsWith('CHANGE-NON-RECURRING-ADDON-')) {
+    } else if (action.startsWith('CHANGE-NON-RECURRING-ADDON-')) {
         id = action.substring(27);
         action = 'CHANGE-NON-RECURRING-ADDON-';
-    }else if (action.startsWith('REMOVE-NON-RECURRING-ADDON-')) {
+    } else if (action.startsWith('REMOVE-NON-RECURRING-ADDON-')) {
         id = action.substring(27);
         action = 'REMOVE-NON-RECURRING-ADDON-';
-    }else if (action.startsWith('EXTRA-')) {
+    } else if (action.startsWith('EXTRA-')) {
         id = action.substring(6);
         action = 'EXTRA-';
-      
-    }else if (action.startsWith('EXTRAUI-')) {
+
+    } else if (action.startsWith('EXTRAUI-')) {
         id = action.substring(8);
         action = 'EXTRAUI-';
-      
+
     }
 
-    switch(action) {
-        case 'REFRESH'  : 
-            return CustomerUtil.refresh(chargebee, req.body, res);
-        case 'SEARCH'   : 
-            return CustomerUtil.search(chargebee, req.body, res);
+    let intercom = req.body;
+    intercom.chargebee = {
+        cbURL: cbURL
+    }
+
+
+    switch (action) {
+        case 'REFRESH':
+            return CustomerUtil.refresh(chargebee, intercom, res);
+        case 'SEARCH':
+            return CustomerUtil.search(chargebee, intercom, res);
         case 'COLLECT-NOW':
-            return CollectNow.process(chargebee, req.body, res);
-        case 'c-list-' :
-            return CustomerUtil.getCustomer(chargebee, req.body, res, id); 
-        case 'MORE-SUBSCRIPTION' :
-            return Subscriptions.process(chargebee, req.body, res);
-        case 'GET-SUBSCRIPTION' :
-            return CustomerUtil.refresh(chargebee, req.body, res);
-        case 'GET-INVOICE' :
-            return Invoices.process(chargebee, req.body, res);
-        case 'CREATE-NEW-SUBSCRIPTION' :
+            return CollectNow.process(chargebee, intercom, res);
+        case 'c-list-':
+            return CustomerUtil.getCustomer(chargebee, intercom, res, id);
+        case 'MORE-SUBSCRIPTION':
+            return Subscriptions.process(chargebee, intercom, res);
+        case 'GET-SUBSCRIPTION':
+            return CustomerUtil.refresh(chargebee, intercom, res);
+        case 'GET-INVOICE':
+            return Invoices.process(chargebee, intercom, res);
+        case 'CREATE-NEW-SUBSCRIPTION':
             //return CreateSubscription.process(chargebee, req.body, res);
-            return SubscriptionUtil.createUI(chargebee, req.body, res);
-        case 'INIT-PAGE' :
-            return CustomerUtil.getCustomer(chargebee, req.body, res);
-        case 'EXTRA-' :              
-            return ExtraUtil.extraUI(chargebee, req.body, res,id);
-        case 'EXTRAUI-' :              
-            return ExtraUIUtil.process(chargebee, req.body, res,id);
-        case 'SEND-HOSTED-PAGE' :
-            return hostedPage.process(chargebee, req.body, res);
-        case 'REQUEST-PAYMENT-METHOD' :
-            return Payment.update(chargebee, req.body, res);
-        case 'UPDATE-PAYMENT-METHOD' :
-            return Payment.update(chargebee, req.body, res);
-        default :
-            return common.getErrorCard(res,"Submit error");
+            return SubscriptionUtil.createUI(chargebee, intercom, res);
+        case 'INIT-PAGE':
+            return CustomerUtil.getCustomer(chargebee, intercom, res);
+        case 'EXTRA-':
+            return ExtraUtil.extraUI(chargebee, intercom, res, id);
+        case 'EXTRAUI-':
+            return ExtraUIUtil.process(chargebee, intercom, res, id);
+        case 'SEND-HOSTED-PAGE':
+            return hostedPage.process(chargebee, intercom, res);
+        case 'REQUEST-PAYMENT-METHOD':
+            return Payment.update(chargebee, intercom, res);
+        case 'UPDATE-PAYMENT-METHOD':
+            return Payment.update(chargebee, intercom, res);
+        default:
+            return common.getErrorCard(res, "Submit error");
 
     }
 

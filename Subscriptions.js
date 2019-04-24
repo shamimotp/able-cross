@@ -41,15 +41,17 @@ const getCard = (data) => {
             height: 21
         });
 
+        card.canvas.content.components.push({
+        type: "text",
+        text: "Subscrption id: "+ "[" + data.subscriptions[i].id  + "](" +  data.subscriptions[i].url + ")",
+        align: "left",
+    });
+      
+      if(data.subscriptions[i].fields.length > 0) {
         let filedValue = {
             type: "data-table",
-            items: [{
-                type: "field-value",
-                field: "Subscrption id:",
-                value: data.subscriptions[i].id
-            }]
+            items: []
         };
-    
         for (var j = 0; j< data.subscriptions[i].fields.length; j++) {
             filedValue.items.push({
                 type: "field-value",
@@ -60,6 +62,9 @@ const getCard = (data) => {
         }
     
         card.canvas.content.components.push(filedValue);
+        
+         }
+        
       if (data.hasAddon) {
             card.canvas.content.components.push({
                 type: "spacer",
@@ -205,6 +210,7 @@ const getListOfSubscriptions = (chargebee, intercom, res, list, data) => {
             plan_id: subscription.plan_id,
             imageURl: common.getSubscrpitionIcon(),
             id: subscription.id,
+            url :intercom.chargebee.cbURL+"admin-console/subscriptions/"+subscription.id,
             value: subscription.currency_code + ' ',            
             hasAddon: false,
             addons: [],
@@ -212,6 +218,8 @@ const getListOfSubscriptions = (chargebee, intercom, res, list, data) => {
             currency_code: subscription.currency_code,
             hasCoupon: false,
         }
+        
+        
         if (subscription.plan_quantity != undefined && parseInt(subscription.plan_quantity) > 0) {
             sdata.plan_quantity = parseInt(subscription.plan_quantity);
         }
