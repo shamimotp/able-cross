@@ -17,6 +17,12 @@ const getCard = (data) => {
                         text: "CUSTOMER PROFILE",
                         align: "left",
                         style: "header"
+                    },
+                  {
+                        type: "text",
+                        text: "Customer ID:  " + "[" + data.customer.id  + "](" +  data.customer.url + ")",
+                        align: "left",        
+                        
                     }
                 ]
             },
@@ -25,44 +31,9 @@ const getCard = (data) => {
             }
         }
     };
-    let profile = {
-        type: "data-table",
-        items: [{
-            type: "field-value",
-            field: "Customer since:",
-            value: data.createdAt
-        }]
-    };
-    if (data.promotionalCredits > 0) {
-        profile.items.push({
-            type: "field-value",
-            field: "Promotional credits:",
-            value: data.promotionalCredits
-        });
-    }
-    if (data.unbilledCharges > 0) {
-        profile.items.push({
-            type: "field-value",
-            field: "Unbilled charges:",
-            value: data.unbilledCharges
-        });
-    }
-    if (data.refundableCredits > 0) {
-        profile.items.push({
-            type: "field-value",
-            field: "Refundable credits:",
-            value: data.refundableCredits
-        });
-    }
-
-    if (data.hasCard) {
-        profile.items.push({
-            type: "field-value",
-            field: "Payament Card:",
-            value: data.card
-        });
-    }
+    let profile = common.getCustomerProfile(data);
     card.canvas.content.components.push(profile);
+
     card.canvas.content.components.push({
         type: "divider"
     });
@@ -116,6 +87,7 @@ const getCard = (data) => {
 
     }
     for (var i = 0; i < data.invoice.length; i++) {
+      
         card.canvas.content.components.push({
             type: "text",
             text: data.invoice[i].title,
@@ -131,29 +103,28 @@ const getCard = (data) => {
                 height: 19
             });
         }
+      if(data.invoice[i].subscription_id !== undefined ) {
+            card.canvas.content.components.push({
+            type: "text",
+            text: data.invoice[i].subscription_id,
+            align: "left",
+            style: "muted"
+        });
+          
+      }
 
         let oneInvoice = {
             type: "data-table",
-            items: [{
-                type: "field-value",
-                field: "Invoice date:",
-                value: data.invoice[i].iDate
-            }]
+            items: []
         };
-        if (data.invoice[i].billingPeriod !== undefined) {
+        for(var j=0;j<data.invoice[i].fields.length; j++) {
             oneInvoice.items.push({
                 type: "field-value",
-                field: "Billing period:",
-                value: data.invoice[i].billingPeriod
+                field: data.invoice[i].fields[j].key,
+                value: data.invoice[i].fields[j].value,
             });
-        }
-        if (data.invoice[i].paidOn !== undefined) {
-            oneInvoice.items.push({
-                type: "field-value",
-                field: "Paid on:",
-                value: data.invoice[i].paidOn
-            });
-        }
+        }       
+        
         card.canvas.content.components.push(oneInvoice);
         card.canvas.content.components.push({
             type: "divider"
@@ -178,63 +149,114 @@ module.exports = {
                 let data = {
                     customer: {
                         id: customer.id,
+                        url: intercom.chargebee.cbURL+"admin-console/customers/"+customer.id,
                         first_name: customer.first_name,
                         last_name: customer.last_name,
                         email: customer.email,
-                        company: customer.company
+                        company: customer.company,
+                        createdAt: moment.unix(customer.created_at).utc().format('ll'),
+                        currency_code: customer.preferred_currency_code,
+                        unbilled_charges: customer.unbilled_charges,
+                        totalDue: customer.preferred_currency_code + " ",
                     },
-                    createdAt: moment.unix(customer.created_at).utc().format('ll'),
-                    promotionalCredits: customer.promotional_credits,
-                    unbilledCharges: customer.unbilled_charges,
-                    refundableCredits: customer.refundable_credits,
                     subscriptionCount: 0,
                     card: '',
                     hasCard: false,
-                    invoiceCount: 0,
                     invoice: []
                 };
                 if (result.card !== undefined) {
                     data.card = result.card.card_type + " ending " + result.card.last4;
                     data.hasCard = true;
                 }
+                if (parseInt(data.customer.unbilled_charges) > 0) {
+                    data.customer.totalDue = data.customer.totalDue + parseFloat(parseInt(data.customer.unbilled_charges, 10) / 100).toFixed(2);
+                } else {
+                    data.customer.totalDue = data.customer.totalDue + "0.00";
+                }
+
+                if (customer.auto_collection !== undefined) {
+                    data.customer.auto_collection = customer.auto_collection;
+                }
+
                 chargebee.invoice.list({
                     limit: 5,
                     "customer_id[is]": customerId,
-                  "sort_by[desc]" : "date"
+                    "sort_by[desc]": "date"
                 }).request(function (invoiceError, invoiceResult) {
                     if (error) {
                         console.log(invoiceError);
                     } else {
-                       
-
                         for (var i = 0; i < invoiceResult.list.length; i++) {
-                            var invoice = invoiceResult.list[i].invoice;
+                          
+                          var invoice = invoiceResult.list[i].invoice;
+                          var invoiceUrl = intercom.chargebee.cbURL+"admin-console/invoices/"+invoice.id;
 
                             var variObject = {
-                                title: invoice.id + ", " + invoice.currency_code,
-                                iDate: moment.unix(invoice.date).utc().format('ll'),
-                                status: invoice.status
+                                title: "[" +  invoice.id  + "](" +  invoiceUrl + "), " + invoice.currency_code,
+                                status: invoice.status,
+                                fields: [{
+                                    key: "Invoice date:",
+                                    value: moment.unix(invoice.date).utc().format('ll'),
+                                }],
+                                
 
                             }
-                            if (parseInt(invoice.total) > 0) {
-                                variObject.title = variObject.title + ' ' + parseFloat(parseInt(invoice.total, 10) / 100).toFixed(2);
-                                variObject.billingPeriod = moment.unix(invoice.line_items[0].date_from).utc().format('ll') + ' to ' + moment.unix(invoice.line_items[0].date_to).utc().format('ll');
-                                if (invoice.paid_at !== undefined) {
-                                    variObject.paidOn = moment.unix(invoice.paid_at).utc().format('ll');
-                                    variObject.imageURL = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fpaid.png?1554824815739";
+                            if (invoice.subscription_id !== undefined) {
+                              var subUrl = intercom.chargebee.cbURL+"admin-console/subscriptions/"+invoice.subscription_id;
+                               variObject.subscription_id = "Subscription ID: " + "[" +  invoice.subscription_id  + "](" +  subUrl + ")";
+                                
+                            } else {
+                                if (invoice.line_items !== undefined && invoice.line_items.length > 0) {
+                                  var subUrl = intercom.chargebee.cbURL+"admin-console/subscriptions/"+invoice.line_items[0].subscription_id;
+                                  variObject.subscription_id = "Subscription ID: " + "[" +  invoice.line_items[0].subscription_id  + "](" +  subUrl + ")";                                   
+                                }
+                            }
+                            if (invoice.recurring !== undefined && invoice.recurring) {
+                                variObject.fields.push({
+                                    key: "Recurring:",
+                                    value: "Recurring"
+                                });
+
+                            } else {
+                                variObject.fields.push({
+                                    key: "Recurring:",
+                                    value: "One time"
+                                });
+                            }
+                            if (invoice.status === "paid") {
+                                variObject.imageURL = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fpaid.png?1554824815739";
+                                if (invoice.total !== undefined && parseInt(invoice.total) > 0) {
+                                    variObject.title = variObject.title + ' ' + parseFloat(parseInt(invoice.total, 10) / 100).toFixed(2);
                                 } else {
-                                    variObject.imageURL = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fdue.png?1554824815540";
+                                    variObject.title = variObject.title + ' 0.00';
+                                }
+                                if (invoice.paid_at !== undefined) {
+                                    variObject.fields.push({
+                                        key: "Paid on:",
+                                        value: moment.unix(invoice.paid_at).utc().format('ll')
+                                    });
                                 }
                             } else {
-                                variObject.title = variObject.title + ' 0';
+                                variObject.imageURL = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fdue.png?1554824815540";
+
+                                if (invoice.due_date !== undefined) {
+                                    variObject.fields.push({
+                                        key: "Due date:",
+                                        value: moment.unix(invoice.due_date).utc().format('ll')
+                                    });
+
+                                }
+                                if (invoice.amount_due !== undefined && parseInt(invoice.amount_due) > 0)
+                                    variObject.fields.push({
+                                        key: "Due Amount:",
+                                        value: invoice.currency_code + " " + parseFloat(parseInt(invoice.amount_due, 10) / 100).toFixed(2),
+                                    });
+
                             }
-
                             data.invoice.push(variObject);
-
                         }
                     }
                     return res.json(getCard(data));
-
                 });
             }
         });
