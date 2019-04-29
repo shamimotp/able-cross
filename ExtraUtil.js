@@ -9,7 +9,7 @@ const getPlan = (planId, plans) => {
         }
     }
 }
-const sendCreatePage = (data, chargebee, intercom, res) => {
+const sendCreatePage = (data, chargebee, intercom, res,qtyError) => {
     let savedData = {};
     if (data.addons !== undefined) {
         savedData.addons = data.addons;
@@ -23,6 +23,9 @@ const sendCreatePage = (data, chargebee, intercom, res) => {
     if (data.oldInputs !== undefined) {
         savedData.oldInputs = data.oldInputs;
     }
+  if(qtyError !== undefined ) {
+    savedData.qtyError = qtyError;
+  }
     return SubscriptionUtil.createUI(chargebee, intercom, res, savedData);
 }
 const getCard = (data, list, type, id) => {
@@ -210,10 +213,16 @@ const getAddon = (data, chargebee, intercom, res, plan, id) => {
         "period_unit[is]": plan.period_unit
     }).request(function (addonerror, addonresult) {
         if (addonerror) {
-            return sendCreatePage(data, chargebee, intercom, res);
+          let qtyError = {
+                    error_msg: 'Sorry, No recurring addons available '
+                }
+            return sendCreatePage(data, chargebee, intercom, res,qtyError);
         } else {
             if (addonresult.list.length == 0) {
-                return sendCreatePage(data, chargebee, intercom, res);
+              let qtyError = {
+                    error_msg: 'Sorry, No recurring addons available '
+                }
+                return sendCreatePage(data, chargebee, intercom, res,qtyError);
             } else {
                 let addonsList = [];
                 for (var i = 0; i < addonresult.list.length; i++) {
@@ -238,10 +247,16 @@ const getEventAddon = (data, chargebee, intercom, res,id) => {
         "charge_type[is]": "non_recurring",
     }).request(function (addonerror, addonresult) {
         if (addonerror) {
-            return sendCreatePage(data, chargebee, intercom, res);
+          let qtyError = {
+                    error_msg: 'Sorry, No non_recurring addons available.'
+                }
+            return sendCreatePage(data, chargebee, intercom, res,qtyError);
         } else {
             if (addonresult.list.length == 0) {
-                return sendCreatePage(data, chargebee, intercom, res);
+              let qtyError = {
+                    error_msg: 'Sorry, No non_recurring addons available.'
+                }
+                return sendCreatePage(data, chargebee, intercom, res,qtyError);
             } else {
                 let addonsList = [];
                 for (var i = 0; i < addonresult.list.length; i++) {
@@ -265,10 +280,16 @@ const getCoupons = (data, chargebee, intercom, res,plan,id) => {
         "status[is]": "active"
     }).request(function (couponerror, couponresult) {
         if (couponerror) {
-            return sendCreatePage(data, chargebee, intercom, res);
+          let qtyError = {
+                    error_msg: 'Sorry, No Coupons available.'
+                }
+            return sendCreatePage(data, chargebee, intercom, res,qtyError);
         } else {
             if (couponresult.list.length == 0) {
-                return sendCreatePage(data, chargebee, intercom, res);
+              let qtyError = {
+                    error_msg: 'Sorry, No Coupons available.'
+                }
+                return sendCreatePage(data, chargebee, intercom, res,qtyError);
             } else {
                 let couponList = [];
                 for (var i = 0; i < couponresult.list.length; i++) {
@@ -327,7 +348,11 @@ const getCoupons = (data, chargebee, intercom, res,plan,id) => {
                 if(couponList.length > 0 ) {
                     return res.json(getCard(data,couponList,"COUPON",id));
                 }else {
-                    return sendCreatePage(data, chargebee, intercom, res);
+                  let qtyError = {
+                    error_msg: 'Sorry, No Coupons available.'
+                }
+                  
+                    return sendCreatePage(data, chargebee, intercom, res,qtyError);
                 }
                 
             }

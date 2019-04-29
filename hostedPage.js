@@ -1,6 +1,7 @@
 const common = require('./common');
 const chargebee = require("chargebee");
 const SubscriptionUtil = require('./SubscriptionUtil');
+const validator = require('validator');
 const getCard = (data) => {
     let card = {
         canvas: {
@@ -191,7 +192,7 @@ const addPayment = (data, res) => {
                     {
                         type: "button",
                         id: "addPayment",
-                        label: "Add Payment Method ",                        
+                        label: "Add Payment Method ",
                         action: {
                             type: "url",
                             url: data.url
@@ -230,7 +231,7 @@ const collectNow = (data, res) => {
                     }, {
                         type: "button",
                         id: "collectNow",
-                        label: "View Pending Invoices",                        
+                        label: "View Pending Invoices",
                         action: {
                             type: "url",
                             url: data.url
@@ -266,11 +267,11 @@ const checkOut = (data, res) => {
                     }, {
                         type: "spacer",
                         size: "m"
-                    },{
+                    }, {
                         type: "button",
                         id: "checkOut",
                         label: "Checkout Subscription",
-                                           
+
                         action: {
                             type: "url",
                             url: data.url
@@ -288,6 +289,19 @@ const checkOut = (data, res) => {
 
 module.exports = {
     process: (chargebee, intercom, res) => {
+        let savedData = {};
+        if (intercom.current_canvas.stored_data.addons !== undefined) {
+            savedData.addons = intercom.current_canvas.stored_data.addons;
+        }
+        if (intercom.current_canvas.stored_data.eventAddons !== undefined) {
+            savedData.eventAddons = intercom.current_canvas.stored_data.eventAddons;
+        }
+        if (intercom.current_canvas.stored_data.coupons !== undefined) {
+            savedData.coupons = intercom.current_canvas.stored_data.coupons;
+        }
+        if (intercom.input_values !== undefined) {
+            savedData.oldInputs = intercom.input_values;
+        }
 
         let customerId = common.getCustomerId(intercom);
 
@@ -310,10 +324,24 @@ module.exports = {
             }
 
         };
-        if (parseInt(intercom.input_values.CUSTOMER_PLAN_QTY) > 0) {
-            inputData.subscription.plan_quantity = parseInt(intercom.input_values.CUSTOMER_PLAN_QTY);
+        let planQuantity = intercom.input_values.CUSTOMER_PLAN_QTY.trim();
+        if(validator.isEmpty(planQuantity)) {
+            planQuantity = 1;
+        }else {
+            planQuantity = parseInt(planQuantity);            
+            if(planQuantity >=0){
+                if(planQuantity == 0){
+                    planQuantity = 1;
+                }
+            }else {
+                savedData.qtyError = {
+                    error_msg:'Please provide a valid quantity for the Plan.'
+                }
+                return SubscriptionUtil.createUI(chargebee, intercom, res, savedData);
+            }
         }
-        
+      inputData.subscription.plan_quantity = planQuantity;       
+
         if (customerId !== undefined) {
             inputData.customer.id = customerId;
         }
@@ -339,36 +367,20 @@ module.exports = {
             }
             inputData.event_based_addons = addons;
         }
-      if (intercom.current_canvas.stored_data.coupons !== undefined ) {
-        if(intercom.current_canvas.stored_data.coupons.length > 0) {
-              inputData.subscription.coupon = intercom.current_canvas.stored_data.coupons[0].id;
-           }
-            
+        if (intercom.current_canvas.stored_data.coupons !== undefined) {
+            if (intercom.current_canvas.stored_data.coupons.length > 0) {
+                inputData.subscription.coupon = intercom.current_canvas.stored_data.coupons[0].id;
+            }
+
         }
+
 
 
         chargebee.hosted_page.checkout_new(inputData).request(function (hostedPageError, hostedPageResult) {
             if (hostedPageError) {
-                
-              
-                let savedData = {                
-                };             
-                
 
-              if (intercom.current_canvas.stored_data.addons !== undefined) {
-                  savedData.addons = intercom.current_canvas.stored_data.addons;
-              }
-              if (intercom.current_canvas.stored_data.eventAddons !== undefined) {
-                  savedData.eventAddons = intercom.current_canvas.stored_data.eventAddons;
-              }
-              if (intercom.current_canvas.stored_data.coupons !== undefined) {
-                  savedData.coupons = intercom.current_canvas.stored_data.coupons;
-              }
-                savedData.error = hostedPageError;
-              if(intercom.input_values !== undefined) {
-                savedData.oldInputs = intercom.input_values;
-              }
-                return SubscriptionUtil.createUI(chargebee, intercom, res,savedData);
+                savedData.qtyError = hostedPageError;
+                return SubscriptionUtil.createUI(chargebee, intercom, res, savedData);
             } else {
 
                 var hosted_page = hostedPageResult.hosted_page;

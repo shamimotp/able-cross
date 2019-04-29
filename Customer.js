@@ -30,7 +30,7 @@ const getCustomer = (customer, res, intercom) => {
     };
 
 
-    if (intercom !== undefined) {
+    if (intercom !== undefined && intercom.current_canvas !== undefined && intercom.current_canvas.stored_data !== undefined) {
         let fromList = intercom.current_canvas.stored_data.fromList;
         if (fromList !== undefined) {
             if (fromList === 'email') {

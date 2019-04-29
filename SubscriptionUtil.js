@@ -41,6 +41,8 @@ const getPlanDropDown = (data) => {
         };
         if (data.oldInputs !== undefined && data.oldInputs.CUSTOMER_PLAN_QTY !== undefined) {
             planQuantity.value = data.oldInputs.CUSTOMER_PLAN_QTY;
+        }else {
+          planQuantity.value = 1;
         }
         planarray.push(planQuantity);
 
@@ -146,7 +148,7 @@ const getCard = (data) => {
     components = components.concat(        
         getPlanDropDown(data)
     );
-    if(data.error !== undefined){
+    if(data.qtyError !== undefined){
        components.push({
             type: "spacer",
             size: "xs"
@@ -154,7 +156,7 @@ const getCard = (data) => {
       components.push(
         {
             type: "text",
-            text: data.error.error_msg,
+            text: data.qtyError.error_msg,
             align: "left",
             style: "error"
         });
@@ -257,8 +259,8 @@ const getCreateUI = (chargebee, intercom, res, savedData, customer) => {
         if (savedData.coupons != undefined) {
             data.coupons = savedData.coupons;
         }
-        if (savedData.error != undefined) {
-            data.error = savedData.error;
+        if (savedData.qtyError != undefined) {
+            data.qtyError = savedData.qtyError;
         }
         if (savedData.oldInputs != undefined) {
             data.oldInputs = savedData.oldInputs;

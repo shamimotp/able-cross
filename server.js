@@ -11,7 +11,6 @@ const request = require('request');
 const CustomerUtil = require('./CustomerUtil.js');
 const Subscriptions = require('./Subscriptions.js');
 const Invoices = require('./Invoices.js');
-const CreateSubscription = require('./CreateSubscription');
 const common = require('./common');
 const hostedPage = require('./hostedPage');
 const Payment = require('./Payment');
@@ -136,7 +135,7 @@ app.get("/auth", function (req, res) {
 });
 
 app.post("/init", function (req, res) {
-    //console.log("Received init: " + JSON.stringify(req.body));    
+    console.log("Received init: " + JSON.stringify(req.body));    
     if (isSigned(req)) {
         db.get('SELECT * from Dreams where id= "' + req.body.admin.id + '"', function (err, row) {
             if (row) {
@@ -145,7 +144,7 @@ app.post("/init", function (req, res) {
                     site: cbUser.sitename,
                     api_key: cbUser.apikey
                 });
-                
+               // console.log("Received init: " + JSON.stringify(cbUser));    
                 let intercom = req.body;
                 intercom.chargebee = {
                     cbURL: "https://" + cbUser.sitename + ".chargebee.com/"
@@ -161,7 +160,7 @@ app.post("/init", function (req, res) {
     }
 });
 app.post("/submit", function (req, res) {
-    //console.log("Received submit: " + JSON.stringify(req.body)); 
+    console.log("Received submit: " + JSON.stringify(req.body)); 
     if (isSigned(req)) {
         db.get('SELECT * from Dreams where id= "' + req.body.admin.id + '"', function (err, row) {
             if (row) {
