@@ -141,15 +141,7 @@ const updatePayment = (data, res) => {
                     {
                         type: "spacer",
                         size: "m"
-                    },
-                    {
-                        type: "text",
-                        text: "[" + data.url + "](" + data.url + ")",
-                        align: "left"
-                    }, {
-                        type: "spacer",
-                        size: "m"
-                    },
+                    },                    
                     {
                         type: "button",
                         id: "updatePayment",
@@ -180,15 +172,7 @@ const addPayment = (data, res) => {
                     {
                         type: "spacer",
                         size: "m"
-                    },
-                    {
-                        type: "text",
-                        text: "[" + data.url + "](" + data.url + ")",
-                        align: "left"
-                    }, {
-                        type: "spacer",
-                        size: "m"
-                    },
+                    },                    
                     {
                         type: "button",
                         id: "addPayment",
@@ -221,14 +205,7 @@ const collectNow = (data, res) => {
                         type: "spacer",
                         size: "m"
                     },
-                    {
-                        type: "text",
-                        text: "[" + data.url + "](" + data.url + ")",
-                        align: "left"
-                    }, {
-                        type: "spacer",
-                        size: "m"
-                    }, {
+                     {
                         type: "button",
                         id: "collectNow",
                         label: "View Pending Invoices",
@@ -314,6 +291,14 @@ module.exports = {
             email: email,
             customerId: customerId
         };
+
+        let planId = intercom.input_values.CUSTOMER_PLAN_ID;
+        if(planId === undefined || planId==='NOPLAN' ) {
+            savedData.planError = {
+                error_msg:'Please select a valid plan.'
+            }
+            return SubscriptionUtil.createUI(chargebee, intercom, res, savedData);
+        }
 
         var inputData = {
             subscription: {

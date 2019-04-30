@@ -90,7 +90,7 @@ const getCard = (data) => {
       
         card.canvas.content.components.push({
             type: "text",
-            text: data.invoice[i].title,
+            text: data.invoice[i].title ,
             align: "left",
             style: "header"
         });
@@ -192,7 +192,7 @@ module.exports = {
                           var invoiceUrl = intercom.chargebee.cbURL+"admin-console/invoices/"+invoice.id;
 
                             var variObject = {
-                                title: "[" +  invoice.id  + "](" +  invoiceUrl + "), " + invoice.currency_code,
+                                title: "Inv no: [" +  invoice.id  + "](" +  invoiceUrl + ")  (" + invoice.currency_code,
                                 status: invoice.status,
                                 fields: [{
                                     key: "Invoice date:",
@@ -226,9 +226,9 @@ module.exports = {
                             if (invoice.status === "paid") {
                                 variObject.imageURL = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fpaid.png?1554824815739";
                                 if (invoice.total !== undefined && parseInt(invoice.total) > 0) {
-                                    variObject.title = variObject.title + ' ' + parseFloat(parseInt(invoice.total, 10) / 100).toFixed(2);
+                                    variObject.title = variObject.title + ' ' + parseFloat(parseInt(invoice.total, 10) / 100).toFixed(2) +')';
                                 } else {
-                                    variObject.title = variObject.title + ' 0.00';
+                                    variObject.title = variObject.title + ' 0.000';
                                 }
                                 if (invoice.paid_at !== undefined) {
                                     variObject.fields.push({
@@ -238,6 +238,11 @@ module.exports = {
                                 }
                             } else {
                                 variObject.imageURL = "https://cdn.glitch.com/ec44948e-b454-4bba-87ed-fa87202a04d1%2Fdue.png?1554824815540";
+                              if (invoice.total !== undefined && parseInt(invoice.total) > 0) {
+                                    variObject.title = variObject.title + ' ' + parseFloat(parseInt(invoice.total, 10) / 100).toFixed(2) +')';
+                                } else {
+                                    variObject.title = variObject.title + ' 0.00)';
+                                }
 
                                 if (invoice.due_date !== undefined) {
                                     variObject.fields.push({
