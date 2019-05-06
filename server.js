@@ -21,7 +21,7 @@ const ExtraUIUtil = require('./ExtraUIUtil');
 const dbUtil = require('./dbUtil');
 
 
-app.use(bodyParser.json()); 
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
     extended: true
 }));
@@ -42,7 +42,7 @@ db.serialize(function () {
         db.run(dbUtil.createTable());
         console.log('New table Dreams created!');
         db.serialize(function () {
-            db.run(dbUtil.insert("1","sitename","apikey","token"));
+            db.run(dbUtil.insert("1", "sitename", "apikey", "token"));
         });
     } else {
         console.log('Database "Dreams" ready to go!');
@@ -56,6 +56,11 @@ app.get('/', function (request, response) {
 
 app.get('/login', function (request, response) {
     response.redirect('https://app.intercom.io/a/oauth/connect?client_id=' + process.env.CLIENT_ID + '&state=chargebee');
+});
+
+app.get("/test", function (req, res) {
+ return common.getNoCustomerCard(res,"ERROR");
+  
 });
 
 
@@ -117,10 +122,10 @@ app.get("/auth", function (req, res) {
                         let workspaceId = admin.app.id_code;
                         db.get(dbUtil.search(workspaceId), function (err, row) {
                             if (row) {
-                                db.run(dbUtil.update(workspaceId,siteName, apikey , body.token ));
+                                db.run(dbUtil.update(workspaceId, siteName, apikey, body.token));
                                 res.redirect('https://app.intercom.io/appstore/redirect?install_success=true');
                             } else {
-                                db.run(dbUtil.insert(workspaceId,siteName, apikey , body.token ));
+                                db.run(dbUtil.insert(workspaceId, siteName, apikey, body.token));
                                 res.redirect('https://app.intercom.io/appstore/redirect?install_success=true');
                             }
                         });
@@ -139,37 +144,44 @@ app.get("/auth", function (req, res) {
     }
 });
 
+const processInitRequest = ( req, res) => {
+    let workspaceId = req.body.workspace_id;
+
+    db.get(dbUtil.search(workspaceId), function (err, row) {
+        if (row) {
+            let cbUser = row;
+            chargebee.configure({
+                site: cbUser.CBSiteName,
+                api_key: cbUser.CBApiKey
+            });
+            // console.log("Received init: " + JSON.stringify(cbUser));    
+            let intercom = req.body;
+            intercom.chargebee = {
+                cbURL: "https://" + cbUser.CBSiteName + ".chargebee.com/"
+            }
+
+            return CustomerUtil.getCustomer(chargebee, intercom, res);
+        } else {
+            return common.getNoAuthCard(res);
+        }
+    });
+}
+
+
+
 app.post("/init", function (req, res) {
     //console.log("Received init: " + JSON.stringify(req.body));    
     if (isSigned(req)) {
-      let workspaceId = req.body.workspace_id;
-      
-        db.get(dbUtil.search(workspaceId), function (err, row) {
-            if (row) {
-                let cbUser = row;
-                chargebee.configure({
-                    site: cbUser.CBSiteName,
-                    api_key: cbUser.CBApiKey
-                });
-               // console.log("Received init: " + JSON.stringify(cbUser));    
-                let intercom = req.body;
-                intercom.chargebee = {
-                    cbURL: "https://" + cbUser.CBSiteName + ".chargebee.com/"
-                }
+        return processInitRequest(req, res);
+        //return processInitRequestJava(req, res);
 
-                return CustomerUtil.getCustomer(chargebee, intercom, res);
-            } else {
-                return common.getNoAuthCard(res);
-            }
-        });
     } else {
         return res.send("{}");
     }
 });
-app.post("/submit", function (req, res) {
-    //c  onsole.log("Received submit: " + JSON.stringify(req.body)); 
-    if (isSigned(req)) {
-      let workspaceId = req.body.workspace_id;
+
+const processSubmitRequest = ( req, res) => {
+    let workspaceId = req.body.workspace_id;
         db.get(dbUtil.search(workspaceId), function (err, row) {
             if (row) {
                 let cbUser = row;
@@ -184,17 +196,52 @@ app.post("/submit", function (req, res) {
                 return common.getNoAuthCard(res);
             }
         });
+}
 
+app.post("/submit", function (req, res) {
+    //c  onsole.log("Received submit: " + JSON.stringify(req.body)); 
+    if (isSigned(req)) {
+        return processSubmitRequest(req, res);
+        //return processSubmitRequestJava(req, res);
     } else {
         return res.send("{}");
     }
 
 });
 
+const processInitRequestJava = ( req, res) => {
+    let workspaceId = req.body.workspace_id;
+
+    db.get(dbUtil.search(workspaceId), function (err, row) {
+        if (row) {
+            let cbUser = row;          
+            let intercom = req.body;
+            request.post('http://chargebeece-env.qpjb84ijxd.ap-south-1.elasticbeanstalk.com/rest/msg/init', {
+                    json: {
+                        env: cbUser,
+                        input:intercom
+                    }
+                }, (error, res2, body) => {
+              console.log(body);
+
+                   
+                    return res.send(body);
+
+                });
+          
+        } else {
+            return common.getNoAuthCard(res);
+        }
+    });
+
+}
+const processSubmitRequestJava = ( req, res) => {
+}
+
 
 app.post("/msg/init", function (req, res) {
     if (isSigned(req)) {
-      let workspaceId = req.body.workspace_id;
+        let workspaceId = req.body.workspace_id;
         db.get(dbUtil.search(workspaceId), function (err, row) {
             if (row) {
                 let cbUser = row;
@@ -360,4 +407,4 @@ const processRequest = (chargebee, req, res, cbURL) => {
     }
 
 
-} 
+}
