@@ -189,7 +189,8 @@ module.exports = {
         let items = {
             type: "item",
             id: customer.id,
-            title: name
+            title: name          
+          
         };
         if (preText !== undefined) {
             items.id = preText + customer.id;
@@ -206,7 +207,7 @@ module.exports = {
 
         let list = {
             type: "list",
-            items: [items]
+            items: [items]           
         }
         return list;
     },

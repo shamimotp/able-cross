@@ -11,17 +11,19 @@ const getPlanDropDown = (data) => {
             id: "CUSTOMER_PLAN_ID",
             label: "PLAN",
             save_state: "unsaved",
-            options: [],
+            value: 'NOPLAN',
+            options: [{
+                type: "option",
+                id: 'NOPLAN',
+                text: 'SELECT'
+            }],
         }
         for (var i = 0; i < data.plans.length; i++) {
-            if (i == 0) {
-                planDrop.value = data.plans[i].id;
-            }
             var ot = {
                 type: "option",
                 id: data.plans[i].id,
                 text: data.plans[i].name
-            }            
+            }
             planDrop.options.push(ot);
         }
 
@@ -29,6 +31,18 @@ const getPlanDropDown = (data) => {
             planDrop.value = data.oldInputs.CUSTOMER_PLAN_ID;
         }
         planarray.push(planDrop);
+        if (data.planError !== undefined) {
+            planarray.push({
+                type: "spacer",
+                size: "xs"
+            });
+            planarray.push({
+                type: "text",
+                text: data.planError.error_msg,
+                align: "left",
+                style: "error"
+            });
+        }
         planarray.push({
             type: "spacer",
             size: "m"
@@ -41,10 +55,23 @@ const getPlanDropDown = (data) => {
         };
         if (data.oldInputs !== undefined && data.oldInputs.CUSTOMER_PLAN_QTY !== undefined) {
             planQuantity.value = data.oldInputs.CUSTOMER_PLAN_QTY;
-        }else {
-          planQuantity.value = 1;
+        } else {
+            planQuantity.value = 1;
         }
         planarray.push(planQuantity);
+
+        if (data.qtyError !== undefined) {
+            planarray.push({
+                type: "spacer",
+                size: "xs"
+            });
+            planarray.push({
+                type: "text",
+                text: data.qtyError.error_msg,
+                align: "left",
+                style: "error"
+            });
+        }
 
     } else {
         planarray.push({
@@ -95,6 +122,9 @@ const getExtras = (list, label, key) => {
 
 const getBasicCard = (data) => {
     return [{
+            type: "divider"
+
+        }, {
             type: "spacer",
             size: "xs"
         },
@@ -122,8 +152,7 @@ const getBasicCard = (data) => {
 const getCard = (data) => {
     let card = {
         canvas: {
-            content: {
-            },
+            content: {},
             stored_data: {} //optional
         }
     };
@@ -138,30 +167,15 @@ const getCard = (data) => {
     if (data.eventAddons !== undefined) {
         card.canvas.stored_data.eventAddons = data.eventAddons;
     }
-  if (data.coupons !== undefined) {
+    if (data.coupons !== undefined) {
         card.canvas.stored_data.coupons = data.coupons;
     }
-    if (data.hasPlans) {
-        card.canvas.stored_data.plans = data.plans;
-    }
     let components = getBasicCard(data);
-    components = components.concat(        
+    components = components.concat(
         getPlanDropDown(data)
     );
-    if(data.qtyError !== undefined){
-       components.push({
-            type: "spacer",
-            size: "xs"
-        });
-      components.push(
-        {
-            type: "text",
-            text: data.qtyError.error_msg,
-            align: "left",
-            style: "error"
-        });
-    }
     
+
     components = components.concat(
         getExtras(data.addons, "RECURRING ADDONS SELECTED", "EXTRA-ADN-REM-")
     );
@@ -262,6 +276,9 @@ const getCreateUI = (chargebee, intercom, res, savedData, customer) => {
         if (savedData.qtyError != undefined) {
             data.qtyError = savedData.qtyError;
         }
+        if (savedData.planError != undefined) {
+            data.planError = savedData.planError;
+        }
         if (savedData.oldInputs != undefined) {
             data.oldInputs = savedData.oldInputs;
         }
@@ -278,8 +295,8 @@ const getCreateUI = (chargebee, intercom, res, savedData, customer) => {
         } else {
             data.email = '';
         }
-    }else {
-     
+    } else {
+
         if (cemail !== undefined && validator.isEmail(cemail)) {
             data.email = cemail;
         } else {
@@ -301,8 +318,8 @@ const getCreateUI = (chargebee, intercom, res, savedData, customer) => {
                     currency: plan.currency_code,
                     price: 0,
                     pricing_model: plan.pricing_model,
-                    period : plan.period,
-                    period_unit : plan.period_unit
+                    period: plan.period,
+                    period_unit: plan.period_unit
                 };
                 if (parseInt(plan.price) > 0) {
                     dPlan.price = parseFloat(parseInt(plan.price, 10) / 100).toFixed(2);

@@ -1,6 +1,7 @@
 const chargebee = require("chargebee");
 const common = require('./common');
 const SubscriptionUtil = require('./SubscriptionUtil');
+const ExtraUtil = require('./ExtraUtil');
 const validator = require('validator');
 
 const removeAction = (data, chargebee, intercom, res, type, id) => {
@@ -38,7 +39,7 @@ const removeAction = (data, chargebee, intercom, res, type, id) => {
 
 
 }
-const changeAction = (data, chargebee, intercom, res,type, id) => {
+const changeAction = (data, chargebee, intercom, res, type, id) => {
     let list;
     let newList1 = [];
     let newList2;
@@ -173,8 +174,8 @@ const createEventAddon = (data, chargebee, intercom, res, id) => {
     });
 }
 const createCoupon = (data, chargebee, intercom, res, id) => {
-   // let list = data.coupons;
-  let list = [];
+    // let list = data.coupons;
+    let list = [];
     if (list === undefined) {
         list = [];
     }
@@ -216,13 +217,76 @@ const cancelAction = (data, chargebee, intercom, res) => {
     }
     return SubscriptionUtil.createUI(chargebee, intercom, res, savedData);
 
+};
+
+const processAddons = (chargebee, intercom, res, action, data) => {
+    let id;
+    if (action.startsWith('ADN-')) {
+        if (action.startsWith('ADN-REM-')) {
+            id = action.substring(8);
+            if (data.addonError !== undefined) {
+                data.addonRemove = true;
+                data.addonRemoveId = id;
+                return ExtraUtil.reRenderextraUI(chargebee, intercom, res, data);
+            } else {
+                return removeAction(data, chargebee, intercom, res, "ADN", id);
+            }
+
+        } else if (action.startsWith('ADN-CHG-')) {
+            id = action.substring(8);
+            if (data.addonError !== undefined) {
+                data.addonRemove = true;
+                data.addonRemoveId = id;
+                return ExtraUtil.reRenderextraUI(chargebee, intercom, res, data);
+            } else {
+                return changeAction(data, chargebee, intercom, res, "ADN", id);
+            }
+        } else if (action === "ADN-CREATE") {
+
+            if (data.addonError !== undefined) {
+                data.addonRemove = false;
+                return ExtraUtil.reRenderextraUI(chargebee, intercom, res, data);
+            } else {
+                return createAction(data, chargebee, intercom, res, "ADN");
+            }
+        } else {
+            return cancelAction(data, chargebee, intercom, res);
+        }
+
+    } else if (action.startsWith('EADN-')) {
+        if (action.startsWith('EADN-REM-')) {
+            id = action.substring(9);
+            return removeAction(data, chargebee, intercom, res, "EADN", id);
+        } else if (action.startsWith('EADN-CHG-')) {
+            id = action.substring(9);
+            return changeAction(data, chargebee, intercom, res, "EADN", id);
+        } else if (action === "EADN-CREATE") {
+            return createAction(data, chargebee, intercom, res, "EADN");
+        } else {
+            return cancelAction(data, chargebee, intercom, res);
+        }
+    } else if (action.startsWith('COUPON-')) {
+        if (action.startsWith('COUPON-REM-')) {
+            id = action.substring(11);
+            return removeAction(data, chargebee, intercom, res, "COUPON", id);
+        } else if (action.startsWith('COUPON-CHG-')) {
+            id = action.substring(11);
+            return changeAction(data, chargebee, intercom, res, "COUPON", id);
+        } else if (action === "COUPON-CREATE") {
+            return createAction(data, chargebee, intercom, res, "COUPON");
+        } else {
+            return cancelAction(data, chargebee, intercom, res);
+        }
+    } else {
+        return res.json({});
+    }
 }
 module.exports = {
     process: (chargebee, intercom, res, action) => {
-        
+
         let customerId = common.getCustomerId(intercom);
         var data = {
-            oldInputs : intercom.current_canvas.stored_data.oldInputs,
+            oldInputs: intercom.current_canvas.stored_data.oldInputs,
         };
         if (customerId !== undefined) {
             data.customerId = customerId;
@@ -236,48 +300,51 @@ module.exports = {
         if (intercom.current_canvas.stored_data.coupons !== undefined) {
             data.coupons = intercom.current_canvas.stored_data.coupons;
         }
-        let type = "";
-        let remove = false;
-        let id;
         if (action.startsWith('ADN-')) {
-            if (action.startsWith('ADN-REM-')) {
-                id = action.substring(8);
-                return removeAction(data, chargebee, intercom, res, "ADN", id);
-            } else if (action.startsWith('ADN-CHG-')) {
-                id = action.substring(8);
-                return changeAction(data, chargebee, intercom, res, "ADN", id);
-            } else if (action === "ADN-CREATE") {
-                return createAction(data, chargebee, intercom, res, "ADN");
-            } else {
-                return cancelAction(data, chargebee, intercom, res);
-            }
+            var extraId = intercom.input_values.EXTRA_ID;
+            if (extraId !== "NOEXTRA") {
+                chargebee.addon.retrieve(extraId).request(function (addonerror, addonresult) {
+                    if (addonerror) {
+                        return processAddons(chargebee, intercom, res, action, data);
+                    } else {
+                        let addonQuantity = intercom.input_values.CUSTOMER_ADDON_QTY.trim();
+                        if (validator.isEmpty(addonQuantity)) {
+                            addonQuantity = 1;
+                        } else {
+                            addonQuantity = parseInt(addonQuantity);
+                            if (addonQuantity >= 0) {
+                                if (addonQuantity == 0) {
+                                    addonQuantity = 1;
+                                }
+                            } else {
+                                data.addonError = {
+                                    error_msg: 'Please provide a valid quantity for the addon.'
+                                };
+                                data.extraInputs = intercom.input_values;
+                            }
+                        }
+                        //intercom.input_values.CUSTOMER_ADDON_QTY = "'" + addonQuantity + "'";
 
-        } else if (action.startsWith('EADN-')) {
-            if (action.startsWith('EADN-REM-')) {
-                id = action.substring(9);
-                return removeAction(data, chargebee, intercom, res, "EADN", id);
-            } else if (action.startsWith('EADN-CHG-')) {
-                id = action.substring(9);
-                return changeAction(data, chargebee, intercom, res, "EADN", id);
-            } else if (action === "EADN-CREATE") {
-                return createAction(data, chargebee, intercom, res, "EADN");
+                        var addon = addonresult.addon;
+                        if(addon.pricing_model ==='flat_fee') {
+                            if(addonQuantity > 1) {
+                                data.addonError = {
+                                    error_msg: 'Cannot pass quantity as the addon -'+addon.name+' does not allow quantity more than 1.'
+                                };
+                                data.extraInputs = intercom.input_values;
+                            }
+                        }
+
+
+                        return processAddons(chargebee, intercom, res, action, data);
+
+                    }
+                });
             } else {
-                return cancelAction(data, chargebee, intercom, res);
-            }
-        } else if (action.startsWith('COUPON-')) {
-            if (action.startsWith('COUPON-REM-')) {
-                id = action.substring(11);
-                return removeAction(data, chargebee, intercom, res, "COUPON", id);
-            } else if (action.startsWith('COUPON-CHG-')) {
-                id = action.substring(11);
-                return changeAction(data, chargebee, intercom, res, "COUPON", id);
-            } else if (action === "COUPON-CREATE") {
-                return createAction(data, chargebee, intercom, res, "COUPON");
-            } else {
-                return cancelAction(data, chargebee, intercom, res);
+                return processAddons(chargebee, intercom, res, action, data);
             }
         } else {
-            return res.json({});
+            return processAddons(chargebee, intercom, res, action, data);
         }
 
     }
